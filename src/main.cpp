@@ -1,7 +1,8 @@
 #include <iostream>
 #include <arrow/io/file.h>
 #include <parquet/stream_reader.h>
-
+#include "User.h"
+#include <string>
 
 int main () {
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -20,6 +21,13 @@ int main () {
         os >> size >> price >> parquet::EndRow;
         std::cout << "SIZE: " << size << " PRICE: " << price << std::endl;
     }
+    
+    std::string userName = "Nguyen Duc Phong";
+    std::string userAccount = "Phong123";
+    std::string userPassword = "ndPhongZ2222";
+    int userPoint = 12;
 
+    User tempUser(userName, userAccount, userPassword, userPoint);
+    tempUser.printUserInfo();
     return 0;
 }

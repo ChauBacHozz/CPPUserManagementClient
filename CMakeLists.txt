@@ -9,12 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add include and lib directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    # "C:/Program Files (x86)/arrow/include"  # Arrow headers (adjust if needed)
     ${CMAKE_SOURCE_DIR}/lib
-    "C:/Program Files (x86)/arrow/include"  # Arrow headers (adjust if needed)
 )
-
+    
 link_directories(
-    "C:/Program Files (x86)/arrow/lib"      # Arrow .a and .dll.a files
+    # "C:/Program Files (x86)/arrow/lib"      # Arrow .a and .dll.a files
+    ${CMAKE_SOURCE_DIR}/lib
 )
 
 # Source files

@@ -31,3 +31,9 @@ add_executable(main ${SOURCES})
 target_link_libraries(main
     arrow parquet
 )
+
+add_custom_command(TARGET main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/libarrow.dll"
+        "${CMAKE_SOURCE_DIR}/lib/libparquet.dll"
+        $<TARGET_FILE_DIR:main>)

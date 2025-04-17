@@ -2,20 +2,13 @@
 #include <string>
 #include <iostream>
 
-User::User(std::string NameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg)
+User::User(std::string AccountNameArg, std::string PasswordArg, int PointArg)
 {
-    this->Name = NameArg;
     this->AccountName = AccountNameArg;
     this->Password = PasswordArg;
     this->Point = PointArg;
 }
 
-std::string User::name() const {
-    return this->Name;
-}
-void User::setName(const std::string &name) {
-    this->Name = name;
-}
 
 std::string User::accountName() const {
     return this->AccountName;
@@ -40,14 +33,12 @@ void User::setPoint(int point) {
 }
 
 void User::printUserInfo() {
-    std::string userName = name();
     std::string userAccountName = accountName();
     std::string userPassword = password();
     int userPoint = point();
 
     std::cout << "User's information" << std::endl;
     std::cout << "----------------------------------" << std::endl;
-    std::cout << "User name: " << userName << std::endl;
     std::cout << "User account name: " << userAccountName << std::endl;
     std::cout << "User password: " << userPassword << std::endl;
     std::cout << "User point: " << userPoint << std::endl;

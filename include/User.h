@@ -4,17 +4,13 @@
 class User
 {
 private:
-    std::string Name;    
     std::string AccountName;
     std::string Password;
     int Point = 0;
 public:
-    User(std::string NameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg);
+    User(std::string AccountNameArg, std::string PasswordArg, int PointArg);
     
     ~User();
-
-    std::string name() const;
-    void setName(const std::string &name);
 
 
     std::string accountName() const;

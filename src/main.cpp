@@ -5,7 +5,7 @@
 #include "parquet/stream_reader.h"
 
 
-void login(std::shared_ptr<arrow::io::ReadableFile> infile){
+void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser){
     std::string userName;
     std::string userPassword;
     // std::string userName;
@@ -33,21 +33,28 @@ void login(std::shared_ptr<arrow::io::ReadableFile> infile){
 
 
         if ((dbUserName == userName) && (dbUserPassword == userPassword)) {
-            User currentUser(userName, userPassword, dbUserPoint);
-            currentUser.printUserInfo();
-            break;
+            std::cout << "Check" << std::endl;
+            currentUser = new User(userName, userPassword, dbUserPoint);
+            return;
         }
-    // ...
+
     }
 }
 
 int main () {
+    User * currentUser = NULL;
     std::shared_ptr<arrow::io::ReadableFile> infile;
 
 
 
-    login(infile);
+    loginUser(infile, currentUser);
 
+
+    if (currentUser) {
+        currentUser->printUserInfo();
+    } else {
+        std::cout << "Login falied" << std::endl;
+    }
 
     return 0;
 }

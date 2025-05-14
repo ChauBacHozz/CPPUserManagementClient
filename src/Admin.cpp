@@ -75,14 +75,28 @@ bool Admin::createUser(std::string FullName, std::string UserName, std::string U
     std::string walletId = hashStringToHex(userBasicInfo);  
     // Tạo mã hash cho userpassword
     std::string salt = generateSaltStr();
-    std::cout << "Salt: " << salt << std::endl;
-    
     std::string hashedPassword1 = sha256(UserPassword + salt);
-    std::cout << "Hashed password 1: " << hashedPassword1 << std::endl;
-    std::string hashedPassword2 = sha256(UserPassword + salt);
-    std::cout << "Hashed password 2: " << hashedPassword2 << std::endl;
-    // Thực hiện mở file, thêm thông tin người dùng vào file parquet
 
+    std::shared_ptr<arrow::io::ReadableFile> infile;
+
+    PARQUET_ASSIGN_OR_THROW(
+        infile,
+        arrow::io::ReadableFile::Open("../assets/users.parquet"));
+  
+     parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+  
+    std::string dbFullName;
+    std::string dbUserName;
+    std::string dbUserPassword;
+    std::string dbUserSalt;
+    int64_t dbUserPoint;
+    std::string dbWalletId;
+  
+    while (!stream.eof() )
+    {
+        stream >> dbFullName >> dbUserName >> dbUserPassword >> dbUserSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
+        std::cout << dbFullName << dbUserName << dbUserPassword << dbUserSalt << dbUserPoint << dbWalletId << std::endl;
+    }
 
 
 

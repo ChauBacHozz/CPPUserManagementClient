@@ -2,20 +2,28 @@
 #include <string>
 #include <iostream>
 
-User::User(std::string AccountNameArg, std::string PasswordArg, int PointArg)
+User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg)
 {
+
+    this->FullName = FullNameArg;
     this->AccountName = AccountNameArg;
     this->Password = PasswordArg;
     this->Point = PointArg;
 }
 
 
+std::string User::fullName() const {
+    return this->FullName;
+}
+void User::setFullName(const std::string &fullName) {
+    this->FullName = fullName;
+}
+
 std::string User::accountName() const {
     return this->AccountName;
 }
 void User::setAccountName(const std::string &accountName) {
     this->AccountName = accountName;
-
 }
 
 std::string User::password() const {

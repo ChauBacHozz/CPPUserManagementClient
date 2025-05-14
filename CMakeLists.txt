@@ -11,6 +11,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     # "C:/Program Files (x86)/arrow/include"  # Arrow headers (adjust if needed)
     ${CMAKE_SOURCE_DIR}/lib
+
 )
     
 link_directories(
@@ -30,6 +31,8 @@ add_executable(main ${SOURCES})
 # Link libraries (no .lib/.a extension needed)
 target_link_libraries(main
     arrow parquet
+    libssl
+    libcrypto
 )
 
 add_custom_command(TARGET main POST_BUILD

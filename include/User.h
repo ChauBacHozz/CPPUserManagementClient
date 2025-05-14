@@ -7,6 +7,7 @@ private:
     std::string FullName;
     std::string AccountName;
     std::string Password;
+    std::string Salt;
     int Point = 0;
 public:
     User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg);
@@ -28,6 +29,8 @@ public:
     int point() const;
     void setPoint(int point);
 
+    std::string salt() const;
+    void setSalt(const std::string &fullName);
 
     void printUserInfo();
 

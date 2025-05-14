@@ -12,6 +12,13 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
 }
 
 
+std::string User::salt() const {
+    return this->Salt;
+}
+void User::setSalt(const std::string &salt) {
+    this->Salt = salt;
+}
+
 std::string User::fullName() const {
     return this->FullName;
 }

@@ -4,6 +4,7 @@
 #include <string>
 #include "arrow/io/file.h"
 #include "parquet/stream_reader.h"
+#include <openssl/sha.h>
 using namespace std;
 
 

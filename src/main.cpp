@@ -27,6 +27,8 @@ using namespace std;
 //     string dbUserName;
 //     string dbUserPassword;
 //     int64_t dbUserPoint;
+//     Thuan da o day;
+//     Thuan lai o day
  
   
 //     while (!stream.eof() )

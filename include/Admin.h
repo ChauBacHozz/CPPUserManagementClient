@@ -1,6 +1,10 @@
-#pragma once
+#ifndef ADMIN_H
+#define ADMIN_H
+
 #include <string>
 #include "User.h"
+
+
 class Admin
 {
 private:
@@ -25,3 +29,4 @@ public:
 
 };
 
+#endif

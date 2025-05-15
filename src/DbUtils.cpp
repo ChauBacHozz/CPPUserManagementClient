@@ -17,11 +17,8 @@ arrow::Status AppendUserParquetRow(std::string& filename, std::string& FullName,
     );
     // Tạo parquet reader
     std::unique_ptr<parquet::arrow::FileReader> fileReader;
-    ARROW_RETURN_NOT_OK(parquet::arrow::OpenFile(
-        infile,
-        arrow::default_memory_pool(),
-        &fileReader
-    ));
+    ARROW_ASSIGN_OR_RAISE(fileReader, parquet::arrow::OpenFile(infile, arrow::default_memory_pool()));
+
 
     // Đọc bảng dữ liệu
     std::shared_ptr<arrow::Table> existing_table;

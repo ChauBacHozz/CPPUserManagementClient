@@ -9,7 +9,7 @@
 #include <openssl/sha.h>
 #include <random>
 #include <sstream>
-
+#include "DbUtils.h"
 Admin::Admin()
 {
 
@@ -72,31 +72,28 @@ std::string sha256(const std::string& input) {
 bool Admin::createUser(std::string FullName, std::string UserName, std::string UserPassword, int point) {
     // Tạo mã hash từ toàn bộ thông tin người dùng
     std::string userBasicInfo = FullName + UserName + UserPassword;
-    std::string walletId = hashStringToHex(userBasicInfo);  
     // Tạo mã hash cho userpassword
     std::string salt = generateSaltStr();
-    std::string hashedPassword1 = sha256(UserPassword + salt);
+    std::string hashedPassword = sha256(UserPassword + salt);
 
-    std::shared_ptr<arrow::io::ReadableFile> infile;
+    std::string walletId = sha256(hashedPassword + salt);
 
-    PARQUET_ASSIGN_OR_THROW(
-        infile,
-        arrow::io::ReadableFile::Open("../assets/users.parquet"));
+    // std::shared_ptr<arrow::io::ReadableFile> infile;
+
+    // PARQUET_ASSIGN_OR_THROW(
+    //     infile,
+    //     arrow::io::ReadableFile::Open("../assets/users.parquet"));
   
-     parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+    //  parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
   
-    std::string dbFullName;
-    std::string dbUserName;
-    std::string dbUserPassword;
-    std::string dbUserSalt;
-    int64_t dbUserPoint;
-    std::string dbWalletId;
-  
-    while (!stream.eof() )
-    {
-        stream >> dbFullName >> dbUserName >> dbUserPassword >> dbUserSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
-        std::cout << dbFullName << dbUserName << dbUserPassword << dbUserSalt << dbUserPoint << dbWalletId << std::endl;
-    }
+    // std::string dbFullName;
+    // std::string dbUserName;
+    // std::string dbUserPassword;
+    // std::string dbUserSalt;
+    // int64_t dbUserPoint;
+    // std::string dbWalletId;
+    std::string filename = "../assets/users.parquet";
+    arrow::Status status = AppendUserParquetRow(filename, FullName, UserName, hashedPassword, salt, point, walletId);
 
 
 

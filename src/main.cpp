@@ -54,7 +54,11 @@ using namespace std;
 
 
 int main () {
-    AdminLoginMenu();
+    while (true)
+    {
+        AdminLoginMenu();
+    }
+    
 
 
 

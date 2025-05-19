@@ -47,19 +47,18 @@ User * enterUserInfo(){
     User * user = new User(fullName, userName, password, point);
     return user;    
 }
-void UserEditMenu(Admin * currentAdmin) {
+bool UserEditMenu(Admin * currentAdmin) {
     int userEditMenuOption;
     do {
         system("cls");
         printUserEditMenu();
         cin >> userEditMenuOption;
 
-    } while (userEditMenuOption < 0 || userEditMenuOption>2);
+    } while (userEditMenuOption < 1 || userEditMenuOption>2);
     switch (userEditMenuOption)
     {
         case 0:
-            cout << "Exiting!!!" << endl; 
-            break;
+            return true;
         case 1: {
             cout << "Add user" << endl; 
             /* code */
@@ -87,6 +86,7 @@ void UserEditMenu(Admin * currentAdmin) {
             break;
     }
 
+    return false;
 }
 
 bool loginAdmin(Admin *& currentAdmin) {
@@ -111,55 +111,77 @@ void AdminLoginMenu() {
     Admin * currentAdmin = new Admin();
     // shared_ptr<arrow::io::ReadableFile> infile;
     
+
     
     if (loginAdmin(currentAdmin)) {
-        int adminHomeMenuOption;
-        do {
-            system("cls");
-            printAdminHomeMenu();
-            cin >> adminHomeMenuOption;
-            cout << "Lua chon cua ban la" << adminHomeMenuOption << endl;
-
-        } while (adminHomeMenuOption < 0 || adminHomeMenuOption>4);
-
-        switch (adminHomeMenuOption)
+        bool adminLoginMenuExit = false;
+        while (!adminLoginMenuExit)
         {
-        case 0:
-            cout << "Exiting!!!" << endl; 
-            break;
-        case 1:
-            cout << "User Listing" << endl; 
             /* code */
-            break;
-        case 2: {
-            cout << "User Editing" << endl; 
-            // Nhap vao thong tin cua user muon tao qua cua so CLI
-            UserEditMenu(currentAdmin);
-            // User * user1 = enterUserInfo();
-            // if (user1 == NULL)
-            // {
-            //     cout << "Enter user info failed" << endl;
-            //     break;
-            // }
+            int adminHomeMenuOption;
+            do {
+                system("cls");
+                printAdminHomeMenu();
+                cin >> adminHomeMenuOption;
+                cout << "Lua chon cua ban la" << adminHomeMenuOption << endl;
+    
+            } while (adminHomeMenuOption < 0 || adminHomeMenuOption>4);
+    
+            switch (adminHomeMenuOption)
+            {
+            case 0:
+                adminLoginMenuExit = true; 
+                break;
+            case 1: {
+                system("cls");
+                bool exit = false;
+                do
+                {
+                    printUserInfoFromDb();
+                    
+                    std::cout << "Enter Z to go back: ";
+                    std::string exit_char;
+                    std::cin >> exit_char;
+                    if (exit_char == "Z" || exit_char == "z") {
+                        exit = true;
+                    }
+                    /* code */
+                } while (!exit);
+            }
+                /* code */
+                break;
+            case 2: {
+                system("cls");
+                bool exit = false;
+                do
+                {
+                    bool exitUserEditMenu = UserEditMenu(currentAdmin);
+                    if (exitUserEditMenu) {
+                        
+                        exit = true;
+                    }
+                    /* code */
+                } while (!exit);
+                
+    
+                // currentAdmin->createUser(user1->fullName(), user1->accountName(), user1->password(), user1->point());
+                break;
+            }
+    
+            case 3:
+                cout << "Wallet management" << endl; 
+                /* code */
+                break;
+            case 4:
+                cout << "Admin management" << endl; 
+                /* code */
+                break;
             
-
-            // currentAdmin->createUser(user1->fullName(), user1->accountName(), user1->password(), user1->point());
-            break;
+            default:
+                break;
+            }
+            
         }
-
-        case 3:
-            cout << "Wallet management" << endl; 
-            /* code */
-            break;
-        case 4:
-            cout << "Admin management" << endl; 
-            /* code */
-            break;
-        
-        default:
-            break;
-        }
-        
 
         // Admin page menu
     } else {

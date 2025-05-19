@@ -11,6 +11,7 @@
 arrow::Status AppendUserParquetRow(std::string& filename, std::string& FullName, std::string& UserName, std::string& UserPassword, std::string& Salt, int Point, std::string& WalletId);
 std::vector<std::vector<std::string>> ReadCSV(const std::string& filename);
 bool saveUserToDbFromCSV(std::string& filename);
+arrow::Status printUserInfoFromDb();
 
 
 

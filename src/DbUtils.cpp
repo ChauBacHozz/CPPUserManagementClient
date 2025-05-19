@@ -4,12 +4,14 @@
 #include <arrow/io/api.h>
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
+#include <arrow/pretty_print.h>
 #include <string>
 #include <memory>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 
 arrow::Status getTableFromFile(std::string& filename, std::shared_ptr<arrow::Table>& existing_table) {
     // Mở file parquet
@@ -264,4 +266,59 @@ bool saveUserToDbFromCSV(std::string& filename) {
         userPointVec,
         walletIdArr);
     return true;
+}
+
+std::string TruncateString(const std::string& s, size_t max_len = 15) {
+    if (s.length() <= max_len) return s;
+    return s.substr(0, max_len) + "...";
+}
+
+void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int> columns_orders) {
+    const int col_width = 15;
+
+    // Print headers
+    for (const int& i : columns_orders) {
+        std::string header = table->schema()->field(i)->name();
+        std::cout << std::setw(col_width) << TruncateString(header) << " | ";
+    }
+    std::cout << "\n";
+
+    // Print separator
+    for (const int& col : columns_orders) {
+        std::cout << std::string(col_width, '-') << " | ";
+    }
+    std::cout << "\n";
+
+    // Print rows
+    int64_t num_rows = table->num_rows();
+    for (int64_t row = 0; row < num_rows; ++row) {
+        for (const int& col : columns_orders) {
+            const auto& chunked_array = table->column(col);
+            int64_t offset = 0;
+            for (const auto& chunk : chunked_array->chunks()) {
+                if (row < offset + chunk->length()) {
+                    auto scalar_result = chunk->GetScalar(row - offset);
+                    if (scalar_result.ok()) {
+                        std::string cell = scalar_result.ValueOrDie()->ToString();
+                        std::cout << std::setw(col_width) << TruncateString(cell) << " | ";
+                    } else {
+                        std::cout << std::setw(col_width) << "ERR" << " | ";
+                    }
+                    break;
+                }
+                offset += chunk->length();
+            }
+        }
+        std::cout << "\n";
+    }
+}
+
+arrow::Status printUserInfoFromDb() {
+    std::string filename = "../assets/users.parquet";
+    std::shared_ptr<arrow::Table> table;
+    ARROW_RETURN_NOT_OK(getTableFromFile(filename, table));
+
+    std::vector<int> column_orders = {0,1,2};
+    PrintTableLikeCLI(table, column_orders);
+    return arrow::Status::OK();
 }

@@ -2,13 +2,16 @@
 #include <string>
 #include <iostream>
 
-User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg)
+User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
 {
 
     this->FullName = FullNameArg;
     this->AccountName = AccountNameArg;
     this->Password = PasswordArg;
     this->Point = PointArg;
+    this->Salt = SaltArg;
+    this->Wallet = WalletArg;
+
 }
 
 
@@ -47,18 +50,12 @@ void User::setPoint(int point) {
     this->Point = point;
 }
 
-void User::printUserInfo() {
-    std::string userAccountName = accountName();
-    std::string userPassword = password();
-    int userPoint = point();
-
-    std::cout << "User's information" << std::endl;
-    std::cout << "----------------------------------" << std::endl;
-    std::cout << "User account name: " << userAccountName << std::endl;
-    std::cout << "User password: " << userPassword << std::endl;
-    std::cout << "User point: " << userPoint << std::endl;
-    std::cout << "----------------------------------" << std::endl;
-};
+std::string User::wallet() const {
+    return this->Wallet;
+}
+void User::setWallet(std::string wallet) {
+    this->Wallet = wallet;
+}
 
 
 User::~User()

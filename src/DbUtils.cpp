@@ -7,6 +7,7 @@
 #include <parquet/arrow/writer.h>
 #include "parquet/stream_reader.h"
 #include "Menus.h"
+#include "User.h"
 #include <arrow/pretty_print.h>
 #include <string>
 #include <memory>
@@ -381,9 +382,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         std::string hashedPassword = sha256(userpassword + dbSalt);
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;
-            currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint);
-            currentUser->setSalt(dbSalt);
-            currentUser->setPoint(dbUserPoint);
+            currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
             UserLoginMenu(currentUser);
             break;
         } else {
@@ -397,4 +396,18 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
             }
         }
     }
+}
+
+arrow::Status registerUser(User *& user) {
+    std::string filename = "../assets/users.parquet";
+    // Auto set user point = 0 if register
+    user->setPoint(0);
+    arrow::Status resultRegisterUser = AppendUserParquetRow(filename,
+                                                            user->fullName,
+                                                            user->accountName,
+                                                            user->password,
+                                                            user->salt,
+                                                            user->point,
+                                                            user->wallet);
+    return resultRegisterUser.ok();
 }

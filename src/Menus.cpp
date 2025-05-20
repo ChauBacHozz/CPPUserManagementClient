@@ -310,7 +310,8 @@ void userAuthMenu() {
             User * currentUser = nullptr;
             loginUser(infile, currentUser);
         } else if(choice==2){
-            // registerUser();
+            // User * 
+            registerUser();
             break;
         } else if(choice==3){
             cout << "Back to Main Menu..." << endl;

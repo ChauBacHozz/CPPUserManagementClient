@@ -15,6 +15,7 @@ std::vector<std::vector<std::string>> ReadCSV(const std::string& filename);
 bool saveUserToDbFromCSV(std::string& filename);
 void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser);
 arrow::Status printUserInfoFromDb();
+arrow::Status registerUser(User *& user);
 
 
 

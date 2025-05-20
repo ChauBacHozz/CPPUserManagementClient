@@ -8,9 +8,10 @@ private:
     std::string AccountName;
     std::string Password;
     std::string Salt;
+    std::string Wallet;
     int Point = 0;
 public:
-    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg);
+    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
     
     ~User();
 
@@ -32,8 +33,8 @@ public:
     std::string salt() const;
     void setSalt(const std::string &fullName);
 
-    void printUserInfo();
-
+    std::string wallet() const;
+    void setWallet(const std::string &wallet);
 
 };
 

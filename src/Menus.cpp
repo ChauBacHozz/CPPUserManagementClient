@@ -34,6 +34,11 @@ void printUserEditMenu() {
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
 }
+void printUserInfoFromDb(User *& currentUser) {
+    cout << "\n--- User Info ---\n";
+    cout << "Full Name: " << currentUser->fullName() << endl;
+    cout << "User Name: " << currentUser->accountName() << endl;
+}
 User * enterUserInfo(){
     system("cls");
     string fullName;
@@ -275,10 +280,8 @@ void UserLoginMenu(User *& currentUser) {
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){
-            cout << "\n--- User Info ---\n";
-            cout << "Full Name: " << currentUser->fullName() << endl;
-            cout << "User Name: " << currentUser->accountName() << endl;
-            changeuserinfo(currentUser);
+           printUserInfoFromDb(currentUser);
+           changeuserinfo(currentUser);
         } else if(choice==2){
             eWallet(currentUser);
         } else if(choice==3){

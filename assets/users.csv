@@ -1,3 +1,0 @@
-Fullname,UserName,Password,Salt,Points,IDWallet
-John Doe,johndoe,hashedpassword123,user1,1000,WAL-1697049600-1234
-Jane Smith,janesmith,hashedpassword456,user2,500,WAL-1697049600-5678

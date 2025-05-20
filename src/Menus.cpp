@@ -3,6 +3,16 @@
 #include "User.h"
 #include "DbUtils.h"
 #include <iostream>
+#include "User.h"
+#include <string>
+#include "arrow/io/file.h"
+#include "parquet/stream_reader.h"
+#include <openssl/sha.h>
+#include "DbUtils.h"
+#include <encrypt.h>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
 using namespace std;
 void printAdminHomeMenu() {
     cout << "ADMIN HOME MENU" << endl;
@@ -54,7 +64,7 @@ bool UserEditMenu(Admin * currentAdmin) {
         printUserEditMenu();
         cin >> userEditMenuOption;
 
-    } while (userEditMenuOption < 1 || userEditMenuOption>2);
+    } while (userEditMenuOption < 0 || userEditMenuOption>2);
     switch (userEditMenuOption)
     {
         case 0:
@@ -118,6 +128,7 @@ void AdminLoginMenu() {
         while (!adminLoginMenuExit)
         {
             /* code */
+            system("cls");
             int adminHomeMenuOption;
             do {
                 system("cls");
@@ -157,7 +168,6 @@ void AdminLoginMenu() {
                 {
                     bool exitUserEditMenu = UserEditMenu(currentAdmin);
                     if (exitUserEditMenu) {
-                        
                         exit = true;
                     }
                     /* code */
@@ -189,4 +199,144 @@ void AdminLoginMenu() {
 
     }
 
+}
+
+
+void changeuserinfo(User *& currentUser) {
+    while (true){
+        int subChoice;
+        cout << "\n--- Change Infomation ---\n" 
+            << "1. Change Full Name\n" 
+            << "2. Change Password\n" 
+            << "3. Back\n";
+        cout << "Enter your choice: ";
+        cin >> subChoice;
+        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(subChoice==1){
+            string newFullName;
+            cout << "Enter new full name: ";
+            getline(cin, newFullName);
+            currentUser->setFullName(newFullName);
+            cout << "Full name changed successfully!" << endl;
+        } else if(subChoice==2){
+            string newPassword;
+            cout << "Enter new password: ";
+            getline(cin, newPassword);
+            currentUser->setPassword(newPassword);
+            cout << "Password changed successfully!" << endl;
+        } else if(subChoice==3){
+            cout << "Back to main menu" << endl;
+            break; // Exit the loop to go back to the main menu
+        } else {
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
+}
+
+void eWallet(User *& currentUser) {
+    while (true){
+        int subChoice;
+        cout << "\n--- E-Wallet ---\n" << "Balance: " << currentUser -> point() << " points" << endl;
+        cout << "--------------------\n" << endl;
+        cout << "1. Transfer Point\n" 
+             << "2. Transaction history (all)\n" 
+             << "3. Transaction history (by time)\n" 
+             << "4. Back\n";
+        cout << "Enter your choice: ";
+        cin >> subChoice;
+        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(subChoice==1){
+            string dbWalletId;
+            cout << "Enter wallet ID to transfer points: ";
+            cin >> dbWalletId;
+            cout << "transfer point comming soon!" << endl;
+        } else if(subChoice==2){
+            cout << "transaction history comming soon!" << endl;
+        } else if(subChoice==3){
+            cout << "transaction history by time comming soon!" << endl;
+        } else if(subChoice==4){
+            cout << "Back to main menu" << endl;
+            break; // Exit the loop to go back to the main menu
+        } else {
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
+}
+
+void UserLoginMenu(User *& currentUser) {
+    while (true){
+        int choice;
+        cout << "\nUser: " << currentUser->accountName() << endl;
+        cout << "\n--- User Menu ---\n" 
+             << "1. User Info\n" 
+             << "2. E-Wallet\n" 
+             << "3. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(choice==1){
+            cout << "\n--- User Info ---\n";
+            cout << "Full Name: " << currentUser->fullName() << endl;
+            cout << "User Name: " << currentUser->accountName() << endl;
+            changeuserinfo(currentUser);
+        } else if(choice==2){
+            eWallet(currentUser);
+        } else if(choice==3){
+            cout << "Logging out..." << endl;
+            break; // Exit the loop to log out
+        } else {
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
+}
+
+
+void userAuthMenu() {
+    while (true){
+        system("cls");
+        int choice;
+        cout << "\n--- User Authentication ---\n" 
+             << "1. Login\n" 
+             << "2. Register\n" 
+             << "3. Back\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(choice==1){
+            shared_ptr<arrow::io::ReadableFile> infile;
+            User * currentUser = nullptr;
+            loginUser(infile, currentUser);
+        } else if(choice==2){
+            // registerUser();
+            break;
+        } else if(choice==3){
+            cout << "Back to Main Menu..." << endl;
+            break; // Back the loop to log out;
+        } else {
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
+}
+void mainMenu() {
+    while (true){
+        system("cls");
+        int choice;
+        cout << "\n--- Main Menu ---\n" 
+             << "1. User Authentication\n" 
+             << "2. Admin Authentication\n" 
+             << "3. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(choice==1){
+            userAuthMenu();
+        } else if(choice==2){
+            AdminLoginMenu();
+        } else if(choice==3){
+            cout << "Goodbye!..." << endl;
+            exit(0); // Exit the loop to log out
+        } else {
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
 }

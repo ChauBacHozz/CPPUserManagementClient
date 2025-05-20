@@ -2,8 +2,11 @@
 #include "Encrypt.h"
 #include <arrow/api.h>
 #include <arrow/io/api.h>
+#include "arrow/io/file.h"
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
+#include "parquet/stream_reader.h"
+#include "Menus.h"
 #include <arrow/pretty_print.h>
 #include <string>
 #include <memory>
@@ -321,4 +324,77 @@ arrow::Status printUserInfoFromDb() {
     std::vector<int> column_orders = {0,1,2};
     PrintTableLikeCLI(table, column_orders);
     return arrow::Status::OK();
+}
+void logFailedLogin(std::string& userName) {
+    std::ofstream logFile("login_failures.log", std::ios::app);
+    if (logFile.is_open()) {
+        logFile << "Failed login attempt: " << userName << ", failed to login 3 times. Account temporarily locked." << std::endl;
+        logFile.close();
+    } else {
+        std::cerr << "Unable to open log file." << std::endl;
+    }
+}
+void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser){
+    std::string userName;
+    std::cout << "User name: ";
+    std::cin >> userName;
+    
+    try {
+        PARQUET_ASSIGN_OR_THROW(
+           infile,
+            arrow::io::ReadableFile::Open("../assets/users.parquet"));
+    } catch (const arrow::Status& status) {
+            std::cerr << "Error opening file: " << status.ToString() << std::endl;
+            currentUser = nullptr;
+            return;        
+        }
+
+    parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+
+    std::string dbFullName;
+    std::string dbUserName;
+    std::string dbSalt;
+    std::string dbWalletId;
+    std::string dbhasdedPassword;
+    int64_t dbUserPoint;
+    bool userfound = false;
+ 
+  
+    while (!stream.eof() ){ 
+        stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
+
+        if (userName == dbUserName) {
+            userfound = true;
+            break;
+        }   
+    }
+    if (!userfound) {
+        std::cout << "Login failed! (User invalid)" << std::endl;
+        currentUser = nullptr;
+    }
+    int failedLoginCount = 0;
+    while (failedLoginCount < 3) {
+        std::string userpassword;
+        std::cout << "Password: ";
+        std::cin >> userpassword;
+
+        std::string hashedPassword = sha256(userpassword + dbSalt);
+        if (hashedPassword == dbhasdedPassword) {
+            std::cout << "Login successful!" << std::endl;
+            currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint);
+            currentUser->setSalt(dbSalt);
+            currentUser->setPoint(dbUserPoint);
+            UserLoginMenu(currentUser);
+            break;
+        } else {
+            failedLoginCount++;
+            std::cout << "Login failed! (Password invalid)" << std::endl;
+            if (failedLoginCount == 3) {
+                logFailedLogin(userName);
+                std::cout << "Account temporarily locked due to multiple failed login attempts." << std::endl;
+                currentUser = nullptr;
+                return;
+            }
+        }
+    }
 }

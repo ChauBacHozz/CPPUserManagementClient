@@ -136,9 +136,9 @@ bool loginAdmin(Admin *& currentAdmin) {
     string adminName;
     string adminPassword;
     // string userName;
-    cout << "Nhap vao ten admin: ";
+    cout << "User admin: ";
     cin >> adminName;
-    cout << "Nhap vao mat khau admin: ";
+    cout << "Password admin: ";
     cin >> adminPassword;
 
     if (adminName == "admin" && adminPassword == "admin") {

@@ -59,7 +59,35 @@ User * enterUserInfo(){
     cin >> point;
 
 
-    User * user = new User(fullName, userName, password, point);
+    User * user = new User();
+    return user;    
+}
+User * enterUserInfoRegister(){
+    system("cls");
+    string fullName;
+    string userName;
+    string genPassword;
+    string genSalt;
+    string genWallet;
+    cout << "ENTER USER INFO" << endl;
+    cout << "---------------------------" <<endl;
+    cout << "User fullname: ";
+    cin.ignore();
+    getline(cin, fullName);
+    cout << "User username: ";
+    cin >> userName;
+    cout << "---------------------------" << endl;
+
+    // Generate random password for first time register
+    genPassword = generateSaltStr(12);
+    genSalt = generateSaltStr();
+    genWallet = sha256(genPassword + genSalt);
+    cout << "Generated password: " << genPassword << endl;
+
+
+
+
+    User * user = new User(fullName, userName, genPassword, 0, genSalt, genWallet);
     return user;    
 }
 bool UserEditMenu(Admin * currentAdmin) {
@@ -296,7 +324,7 @@ void UserLoginMenu(User *& currentUser) {
 
 void userAuthMenu() {
     while (true){
-        system("cls");
+        // system("cls");
         int choice;
         cout << "\n--- User Authentication ---\n" 
              << "1. Login\n" 
@@ -311,11 +339,11 @@ void userAuthMenu() {
             loginUser(infile, currentUser);
         } else if(choice==2){
             // User * 
-            registerUser();
-            break;
+            User * new_user = enterUserInfoRegister();
+            UserLoginMenu(new_user);
+
         } else if(choice==3){
             cout << "Back to Main Menu..." << endl;
-            break; // Back the loop to log out;
         } else {
             cout << "Invalid choice. Please try again." << endl;
         }

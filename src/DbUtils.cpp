@@ -402,12 +402,19 @@ arrow::Status registerUser(User *& user) {
     std::string filename = "../assets/users.parquet";
     // Auto set user point = 0 if register
     user->setPoint(0);
+    std::string fullName = user->fullName();
+    std::string accountName = user->accountName();
+    std::string password = user->password();
+    std::string salt = user->salt();
+    int point = user->point();
+    std::string wallet = user->wallet();
+
     arrow::Status resultRegisterUser = AppendUserParquetRow(filename,
-                                                            user->fullName,
-                                                            user->accountName,
-                                                            user->password,
-                                                            user->salt,
-                                                            user->point,
-                                                            user->wallet);
-    return resultRegisterUser.ok();
+                                                            fullName,
+                                                            accountName,
+                                                            password,
+                                                            salt,
+                                                            point,
+                                                            wallet);
+    return arrow::Status::OK();
 }

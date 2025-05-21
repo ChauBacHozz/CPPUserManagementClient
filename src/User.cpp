@@ -1,7 +1,9 @@
 #include "User.h"
 #include <string>
 #include <iostream>
+User::User(){
 
+}
 User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
 {
 
@@ -15,45 +17,45 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
 }
 
 
-std::string User::salt() const {
+std::string User::salt()  {
     return this->Salt;
 }
-void User::setSalt(const std::string &salt) {
+void User::setSalt( std::string &salt) {
     this->Salt = salt;
 }
 
-std::string User::fullName() const {
+std::string User::fullName()  {
     return this->FullName;
 }
-void User::setFullName(const std::string &fullName) {
+void User::setFullName( std::string &fullName) {
     this->FullName = fullName;
 }
 
-std::string User::accountName() const {
+std::string User::accountName()  {
     return this->AccountName;
 }
-void User::setAccountName(const std::string &accountName) {
+void User::setAccountName( std::string &accountName) {
     this->AccountName = accountName;
 }
 
-std::string User::password() const {
+std::string User::password()  {
     return this->Password;
 }
-void User::setPassword(const std::string &password) {
+void User::setPassword( std::string &password) {
     this->Password = password;
 }
 
-int User::point() const {
+int User::point()  {
     return this->Point;
 }
 void User::setPoint(int point) {
     this->Point = point;
 }
 
-std::string User::wallet() const {
+std::string User::wallet()  {
     return this->Wallet;
 }
-void User::setWallet(std::string wallet) {
+void User::setWallet(std::string &wallet) {
     this->Wallet = wallet;
 }
 

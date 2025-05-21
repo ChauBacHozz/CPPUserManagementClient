@@ -11,30 +11,30 @@ private:
     std::string Wallet;
     int Point = 0;
 public:
+    User();
     User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
-    
     ~User();
 
 
-    std::string fullName() const;
-    void setFullName(const std::string &fullName);
+    std::string fullName() ;
+    void setFullName( std::string &fullName);
 
-    std::string accountName() const;
-    void setAccountName(const std::string &accountName);
-
-
-    std::string password() const;
-    void setPassword(const std::string &password);
+    std::string accountName() ;
+    void setAccountName( std::string &accountName);
 
 
-    int point() const;
+    std::string password() ;
+    void setPassword( std::string &password);
+
+
+    int point() ;
     void setPoint(int point);
 
-    std::string salt() const;
-    void setSalt(const std::string &fullName);
+    std::string salt() ;
+    void setSalt( std::string &fullName);
 
-    std::string wallet() const;
-    void setWallet(const std::string &wallet);
+    std::string wallet() ;
+    void setWallet( std::string &wallet);
 
 };
 

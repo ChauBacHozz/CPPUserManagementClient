@@ -32,7 +32,13 @@ arrow::Status getTableFromFile(std::string& filename, std::shared_ptr<arrow::Tab
     return arrow::Status::OK();
 }
 
-arrow::Status AppendUserParquetRow(std::string& filename, std::string& FullName, std::string& UserName, std::string& UserPassword, std::string& Salt, int Point, std::string& WalletId) {
+arrow::Status AppendUserParquetRow(std::string& filename, 
+                                   std::string& FullName, 
+                                   std::string& UserName, 
+                                   std::string& UserPassword, 
+                                   std::string& Salt, 
+                                   int Point, 
+                                   std::string& WalletId) {
 
     // Đọc bảng dữ liệu
     std::shared_ptr<arrow::Table> existing_table;

@@ -39,6 +39,58 @@ void printUserInfoFromDb(User *& currentUser) {
     cout << "Full Name: " << currentUser->fullName() << endl;
     cout << "User Name: " << currentUser->accountName() << endl;
 }
+
+void printchangeUserInfoMenu() {
+    cout << "\n--- CHANGE USER INFO MENU ---\n" 
+         << "1. Change Full Name\n" 
+         << "2. Change Password\n" 
+         << "3. Back\n";
+    cout << "Enter your choice: ";
+}
+
+void printeWalletMenu() {
+    cout << "\n--- E-WALLET MENU ---\n" 
+         << "1. Transfer Points\n" 
+         << "2. Transaction History\n" 
+         << "3. Transaction History by Time\n" 
+         << "4. Back\n";
+    cout << "Enter your choice: ";
+}
+
+void printUserLoginMenu() {
+    cout << "\n--- USER LOGIN MENU ---\n" 
+         << "1. Information\n" 
+         << "2. E-Walelt\n" 
+         << "3. Back\n";
+    cout << "Enter your choice: ";
+}
+
+void printuserHomeMenu() {
+    cout << "\n--- USER HOME MENU ---\n" 
+         << "1. Login\n" 
+         << "2. Register\n" 
+         << "3. Back\n";
+    cout << "Enter your choice: ";
+}
+
+bool isUserExist(std::string userName) {
+    // Check if the user exists in the database
+    // This is a placeholder function. You need to implement the actual logic.
+    // For now, let's assume the user does not exist.
+    std::ifstream infile("../assets/user_info.csv");
+    std::string line;
+    while (std::getline(infile, line)) {
+        std::istringstream iss(line);
+        std::string name;
+        if (std::getline(iss, name, ',')) {
+            if (name == userName) {
+                return true; // User exists
+            }
+        }
+    }
+    return false; // User does not exist
+}
+
 User * enterUserInfo(){
     system("cls");
     string fullName;
@@ -62,32 +114,48 @@ User * enterUserInfo(){
     User * user = new User();
     return user;    
 }
+
 User * enterUserInfoRegister(){
     system("cls");
     string fullName;
     string userName;
+    string password;
     string genPassword;
     string genSalt;
-    string genWallet;
+    string genWalletId;
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     cout << "User fullname: ";
     cin.ignore();
     getline(cin, fullName);
-    cout << "User username: ";
-    cin >> userName;
+    while (true){
+        cout << "User username: ";
+        cin >> userName;
+        if (isUserExist(userName)) {
+            cout << "Username already exists. Please try again." << endl;
+        } 
+        else {
+            break; // Exit the loop if the username is unique
+        }  
+    }
+    cin.ignore();
+    cout << "User password: "; 
+    getline(cin, genPassword);
+
+    if (password.empty()) {
+        genPassword = generateSaltStr(12);
+        cout << "Generated password: " << genPassword << endl;
+    } else {
+        genPassword = password;
+    }
     cout << "---------------------------" << endl;
 
     // Generate random password for first time register
-    genPassword = generateSaltStr(12);
     genSalt = generateSaltStr();
-    genWallet = sha256(genPassword + genSalt);
+    genWalletId = sha256(genPassword + genSalt);
     cout << "Generated password: " << genPassword << endl;
 
-
-
-
-    User * user = new User(fullName, userName, genPassword, 0, genSalt, genWallet);
+    User * user = new User(fullName, userName, genPassword, 0, genSalt, genWalletId);
     return user;    
 }
 bool UserEditMenu(Admin * currentAdmin) {
@@ -238,11 +306,7 @@ void AdminLoginMenu() {
 void changeuserinfo(User *& currentUser) {
     while (true){
         int subChoice;
-        cout << "\n--- Change Infomation ---\n" 
-            << "1. Change Full Name\n" 
-            << "2. Change Password\n" 
-            << "3. Back\n";
-        cout << "Enter your choice: ";
+        printchangeUserInfoMenu();
         cin >> subChoice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
@@ -269,13 +333,10 @@ void changeuserinfo(User *& currentUser) {
 void eWallet(User *& currentUser) {
     while (true){
         int subChoice;
+        cout << "\nUser: " << currentUser->accountName() << endl;
         cout << "\n--- E-Wallet ---\n" << "Balance: " << currentUser -> point() << " points" << endl;
         cout << "--------------------\n" << endl;
-        cout << "1. Transfer Point\n" 
-             << "2. Transaction history (all)\n" 
-             << "3. Transaction history (by time)\n" 
-             << "4. Back\n";
-        cout << "Enter your choice: ";
+        printeWalletMenu();
         cin >> subChoice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
@@ -300,11 +361,7 @@ void UserLoginMenu(User *& currentUser) {
     while (true){
         int choice;
         cout << "\nUser: " << currentUser->accountName() << endl;
-        cout << "\n--- User Menu ---\n" 
-             << "1. User Info\n" 
-             << "2. E-Wallet\n" 
-             << "3. Exit\n";
-        cout << "Enter your choice: ";
+        printUserLoginMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){
@@ -322,15 +379,11 @@ void UserLoginMenu(User *& currentUser) {
 }
 
 
-void userAuthMenu() {
+void userHomeMenu() {
     while (true){
         // system("cls");
         int choice;
-        cout << "\n--- User Authentication ---\n" 
-             << "1. Login\n" 
-             << "2. Register\n" 
-             << "3. Back\n";
-        cout << "Enter your choice: ";
+        printuserHomeMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){
@@ -340,15 +393,18 @@ void userAuthMenu() {
         } else if(choice==2){
             // User * 
             User * new_user = enterUserInfoRegister();
-            UserLoginMenu(new_user);
-
+            registerUser(new_user);
+            loginUser(infile, new_user);
+            cout << "User registered successfully!" << endl;
         } else if(choice==3){
             cout << "Back to Main Menu..." << endl;
+            break; // Exit the loop to go back to the main menu
         } else {
             cout << "Invalid choice. Please try again." << endl;
         }
     }
 }
+
 void mainMenu() {
     while (true){
         system("cls");
@@ -361,7 +417,7 @@ void mainMenu() {
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){
-            userAuthMenu();
+            userHomeMenu();
         } else if(choice==2){
             AdminLoginMenu();
         } else if(choice==3){

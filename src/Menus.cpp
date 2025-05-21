@@ -39,6 +39,7 @@ void printUserInfoFromDb(User *& currentUser) {
     cout << "Full Name: " << currentUser->fullName() << endl;
     cout << "User Name: " << currentUser->accountName() << endl;
 }
+
 User * enterUserInfo(){
     system("cls");
     string fullName;
@@ -62,6 +63,7 @@ User * enterUserInfo(){
     User * user = new User();
     return user;    
 }
+
 User * enterUserInfoRegister(){
     system("cls");
     string fullName;
@@ -90,6 +92,7 @@ User * enterUserInfoRegister(){
     User * user = new User(fullName, userName, genPassword, 0, genSalt, genWallet);
     return user;    
 }
+
 bool UserEditMenu(Admin * currentAdmin) {
     int userEditMenuOption;
     do {
@@ -150,6 +153,7 @@ bool loginAdmin(Admin *& currentAdmin) {
     }
     // return false;
 }
+
 void AdminLoginMenu() {
     Admin * currentAdmin = new Admin();
     // shared_ptr<arrow::io::ReadableFile> infile;

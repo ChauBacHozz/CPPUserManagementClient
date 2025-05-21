@@ -386,15 +386,16 @@ void userHomeMenu() {
         printuserHomeMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
+        shared_ptr<arrow::io::ReadableFile> infile;
+
         if(choice==1){
-            shared_ptr<arrow::io::ReadableFile> infile;
             User * currentUser = nullptr;
             loginUser(infile, currentUser);
         } else if(choice==2){
             // User * 
             User * new_user = enterUserInfoRegister();
             registerUser(new_user);
-            loginUser(infile, new_user);
+            UserLoginMenu(new_user);
             cout << "User registered successfully!" << endl;
         } else if(choice==3){
             cout << "Back to Main Menu..." << endl;

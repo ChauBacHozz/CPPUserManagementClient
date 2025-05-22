@@ -73,6 +73,14 @@ void printuserHomeMenu() {
     cout << "Enter your choice: ";
 }
 
+void printmainMenu() {
+    cout << "\n--- MAIN MENU ---\n" 
+         << "1. User Home\n" 
+         << "2. Admin Home\n" 
+         << "3. Exit\n";
+    cout << "Enter your choice: ";
+}
+
 bool isUserExist(std::string userName) {
     // Check if the user exists in the database
     // This is a placeholder function. You need to implement the actual logic.
@@ -144,7 +152,7 @@ User * enterUserInfoRegister(){
 
     if (password.empty()) {
         genPassword = generateSaltStr(12);
-        cout << "Generated password: " << genPassword << endl;
+        cout << "Password: " << genPassword << endl;
     } else {
         genPassword = password;
     }
@@ -218,6 +226,7 @@ bool loginAdmin(Admin *& currentAdmin) {
     }
     // return false;
 }
+
 void AdminLoginMenu() {
     Admin * currentAdmin = new Admin();
     // shared_ptr<arrow::io::ReadableFile> infile;
@@ -410,11 +419,7 @@ void mainMenu() {
     while (true){
         system("cls");
         int choice;
-        cout << "\n--- Main Menu ---\n" 
-             << "1. User Authentication\n" 
-             << "2. Admin Authentication\n" 
-             << "3. Exit\n";
-        cout << "Enter your choice: ";
+        printmainMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){

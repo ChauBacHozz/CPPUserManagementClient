@@ -328,8 +328,15 @@ void changeuserinfo(User *& currentUser) {
             string newPassword;
             cout << "Enter new password: ";
             getline(cin, newPassword);
-            currentUser->setPassword(newPassword);
-            cout << "Password changed successfully!" << endl;
+            if(!newPassword.empty()){
+                string salt = currentUser->salt();
+                string hashedPassword = sha256(newPassword + salt);
+                currentUser->setPassword(hashedPassword);
+                cout << "Password changed successfully!" << endl;
+            }
+            else{
+                cout << "Password cannot be empty!" << endl;
+            }
         } else if(subChoice==3){
             cout << "Back to main menu" << endl;
             break; // Exit the loop to go back to the main menu

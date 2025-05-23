@@ -3,6 +3,7 @@
 
 #include <string>
 #include "User.h"
+#include <DbUtils.h>
 
 
 class Admin

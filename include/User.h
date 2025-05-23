@@ -4,7 +4,7 @@
 class User
 {
 private:
-    std::string FullName;
+    std::string Fullname;
     std::string AccountName;
     std::string Password;
     std::string Salt;
@@ -12,7 +12,7 @@ private:
     int Point = 0;
 public:
     User();
-    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
+    User(std::string FullnameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
     ~User();
 
 
@@ -31,7 +31,7 @@ public:
     void setPoint(int point);
 
     std::string salt() ;
-    void setSalt( std::string &fullName);
+    void setSalt( std::string &fullname);
 
     std::string wallet() ;
     void setWallet( std::string &wallet);

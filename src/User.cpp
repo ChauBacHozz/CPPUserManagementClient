@@ -4,10 +4,10 @@
 User::User(){
 
 }
-User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
+User::User(std::string FullnameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
 {
 
-    this->FullName = FullNameArg;
+    this->Fullname = FullnameArg;
     this->AccountName = AccountNameArg;
     this->Password = PasswordArg;
     this->Point = PointArg;
@@ -25,10 +25,10 @@ void User::setSalt( std::string &salt) {
 }
 
 std::string User::fullName()  {
-    return this->FullName;
+    return this->Fullname;
 }
-void User::setFullName( std::string &fullName) {
-    this->FullName = fullName;
+void User::setFullName( std::string &fullname) {
+    this->Fullname = fullname;
 }
 
 std::string User::accountName()  {

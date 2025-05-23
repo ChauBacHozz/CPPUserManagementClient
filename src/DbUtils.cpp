@@ -16,6 +16,8 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <set>
+#include <openssl/sha.h>
 
 arrow::Status getTableFromFile(std::string& filename, std::shared_ptr<arrow::Table>& existing_table) {
     // Mở file parquet
@@ -33,7 +35,7 @@ arrow::Status getTableFromFile(std::string& filename, std::shared_ptr<arrow::Tab
 }
 
 arrow::Status AppendUserParquetRow(std::string& filename, 
-                                   std::string& FullName, 
+                                   std::string& Fullname, 
                                    std::string& UserName, 
                                    std::string& UserPassword, 
                                    std::string& Salt, 
@@ -48,7 +50,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     std::shared_ptr<arrow::Schema> schema = existing_table->schema();
 
     // Tạo builder cho dòng mới 
-    arrow::StringBuilder bdFullName;
+    arrow::StringBuilder bdFullname;
     arrow::StringBuilder bdUserName;
     arrow::StringBuilder bdUserPassword;
     arrow::StringBuilder bdUserSalt;
@@ -56,7 +58,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     arrow::StringBuilder bdWalletId;
     
     // Thêm giá trị mới vào các builder
-    ARROW_RETURN_NOT_OK(bdFullName.Append(FullName));
+    ARROW_RETURN_NOT_OK(bdFullname.Append(Fullname));
     ARROW_RETURN_NOT_OK(bdUserName.Append(UserName));
     ARROW_RETURN_NOT_OK(bdUserPassword.Append(UserPassword));
     ARROW_RETURN_NOT_OK(bdUserSalt.Append(Salt));
@@ -64,14 +66,14 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     ARROW_RETURN_NOT_OK(bdWalletId.Append(WalletId));
     
     // Chuyển builder về dạng array
-    std::shared_ptr<arrow::Array> arrFullName;
+    std::shared_ptr<arrow::Array> arrFullname;
     std::shared_ptr<arrow::Array> arrUserName;
     std::shared_ptr<arrow::Array> arrUserPassword;
     std::shared_ptr<arrow::Array> arrSalt;
     std::shared_ptr<arrow::Array> arrPoint;
     std::shared_ptr<arrow::Array> arrWalletId;
 
-    ARROW_RETURN_NOT_OK(bdFullName.Finish(&arrFullName));
+    ARROW_RETURN_NOT_OK(bdFullname.Finish(&arrFullname));
     ARROW_RETURN_NOT_OK(bdUserName.Finish(&arrUserName));
     ARROW_RETURN_NOT_OK(bdUserPassword.Finish(&arrUserPassword));
     ARROW_RETURN_NOT_OK(bdUserSalt.Finish(&arrSalt));
@@ -79,7 +81,12 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     ARROW_RETURN_NOT_OK(bdWalletId.Finish(&arrWalletId));
 
     // Chuyển thành dạng bảng
-    std::vector<std::shared_ptr<arrow::Array>> new_arrays = {arrFullName, arrUserName, arrUserPassword, arrSalt, arrPoint, arrWalletId};
+    std::vector<std::shared_ptr<arrow::Array>> new_arrays = {arrFullname, 
+                                                             arrUserName, 
+                                                             arrUserPassword, 
+                                                             arrSalt, 
+                                                             arrPoint, 
+                                                             arrWalletId};
     std::shared_ptr<arrow::Table> new_table = arrow::Table::Make(schema, new_arrays);
 
     // Ghép nối bảng cũ vào bảng mới
@@ -110,7 +117,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
 }
 
 arrow::Status AppendBatchUserParquetRows(std::string& filename,
-                                        std::vector<std::string>& FullNameArr,
+                                        std::vector<std::string>& FullnameArr,
                                         std::vector<std::string>& UserNameArr,
                                         std::vector<std::string>& UserPasswordArr,
                                         std::vector<std::string>& SaltArr,
@@ -134,8 +141,8 @@ arrow::Status AppendBatchUserParquetRows(std::string& filename,
     arrow::StringBuilder bdWalletId;
     
     // Thêm giá trị mới vào các builder
-    for (int i = 0; i < FullNameArr.size(); i++) {
-        ARROW_RETURN_NOT_OK(bdFullName.Append(FullNameArr[i]));
+    for (int i = 0; i < FullnameArr.size(); i++) {
+        ARROW_RETURN_NOT_OK(bdFullName.Append(FullnameArr[i]));
         ARROW_RETURN_NOT_OK(bdUserName.Append(UserNameArr[i]));
         ARROW_RETURN_NOT_OK(bdUserPassword.Append(UserPasswordArr[i]));
         ARROW_RETURN_NOT_OK(bdUserSalt.Append(SaltArr[i]));
@@ -424,3 +431,180 @@ arrow::Status registerUser(User *& user) {
                                                             wallet);
     return arrow::Status::OK();
 }
+
+arrow::Status findUserrow(const std::shared_ptr<arrow::Table>& table, 
+                          const std::string& userName,
+                          int64_t& rowToUpdate) {
+                            
+    auto userNameColumn = table->GetColumnByName("UserName");
+    if(!userNameColumn) {
+        std::cerr << "Column UserName not found" << std::endl;
+        return arrow::Status::Invalid("Column UserName not found");
+    }
+    if(userNameColumn->type() -> id() != arrow::Type::STRING) {
+        std::cerr << "Column UserName is not a string" << std::endl;
+        return arrow::Status::Invalid("Column UserName is not a string");
+    }
+
+    rowToUpdate = -1;
+    int64_t rowIdx = 0;
+    for(const auto& chunk : userNameColumn->chunks()) {
+        auto string_column = std::static_pointer_cast<arrow::StringArray>(chunk);
+        for (int64_t i = 0; i < string_column->length(); i++, rowIdx++) {
+            if(!string_column->IsNull(i) && string_column->GetString(i) == userName) {
+                rowToUpdate = rowIdx;
+                return arrow::Status::OK();
+            }
+        }
+    }
+    std::cerr << "User " << userName << " not found" << std::endl;
+    return arrow::Status::Invalid("User " + userName + " not found!");
+}
+
+arrow::Status checkRequiredColumns(const std::shared_ptr<arrow::Table>& table, 
+                                   const std::set<std::string>& requires_columns,
+                                   const std::map<std::string, 
+                                   arrow::Type::type>& expected_types) { 
+    for(const auto& col : requires_columns) {
+        auto column = table->GetColumnByName(col);
+        if(!column) {
+            std::cerr << "Required column " << col << " not found" << std::endl;
+            return arrow::Status::Invalid("Column " + col + " not found");
+        }
+        auto it = expected_types.find(col);
+        if(it != expected_types.end() && column->type()->id() != it->second) {
+            std::cerr << "Column " << col << " has is not of expected type" << std::endl;
+            return arrow::Status::Invalid("Column " + col + " is not of expected type");
+        }
+    }
+    return arrow::Status::OK();
+}
+
+arrow::Status updateUserInfo(const std::string& filename,
+                             User*& user,
+                            const std::map<std::string, 
+                            std::string>& updated_values,
+                            bool allow_point_update) {
+    //Kiểm tra đầu vào
+    if(filename.empty()) {
+        std::cerr << "Filename is empty" << std::endl;
+        return arrow::Status::Invalid("Filename is empty");
+    }
+    if(!user) {
+        std::cerr << "User is null" << std::endl;
+        return arrow::Status::Invalid("User is null");
+    }
+    if(updated_values.find("WalletId") != updated_values.end()) {
+        std::cerr << "WalletId cannot be update!" << std::endl;
+        return arrow::Status::Invalid("WalletId cannot be update!");
+    }
+    if(!allow_point_update && updated_values.find("Point") != updated_values.end()) {
+        std::cerr << "Point cannot be update!" << std::endl;
+        return arrow::Status::Invalid("Point cannot be update!");
+    }
+
+    std::cout << "Starting updateUserInfo for file: " << filename << ", user: " << user->accountName() << std::endl;
+    
+    // Đọc bảng từ file parquet
+    std::shared_ptr<arrow::Table> table;
+    ARROW_RETURN_NOT_OK(getTableFromFile(const_cast<std::string&>(filename), table));
+        
+    std::cout << "Table read successfully, num_rows: " << table->num_rows() << ", num_columns: " << table->num_columns() << std::endl;
+
+    // Kiểm tra các cột cần cập nhật
+    std::set<std::string> requires_columns = {"UserName"};
+    std::map<std::string, arrow::Type::type> expected_types = {
+        {"UserName", arrow::Type::STRING},
+        {"FullName", arrow::Type::STRING},
+        {"UserPassword", arrow::Type::STRING},
+        {"Salt", arrow::Type::STRING},
+        {"Point", arrow::Type::INT64},
+        {"WalletId", arrow::Type::STRING}
+    };
+    for(const auto& [col, _] : updated_values) {
+        requires_columns.insert(col);
+    }
+    ARROW_RETURN_NOT_OK(checkRequiredColumns(table, requires_columns, expected_types));
+    // Tìm hàng cần cập nhật
+    int64_t rowToUpdate = -1;
+    ARROW_RETURN_NOT_OK(findUserrow(table, user->accountName(), rowToUpdate));
+    std::cout << "Found user at row: " << rowToUpdate << std::endl;
+
+    //Tạo cột mới
+    std::vector<std::shared_ptr<arrow::Array>> newColumns;
+    for(int colIdx = 0; colIdx < table->num_columns(); ++colIdx) {
+        auto column = table->column(colIdx);
+        auto fieldName = table->field(colIdx)->name();
+        std::shared_ptr<arrow::Array> newColumn;
+        //Nếu cột cần cập nhật
+        auto it = updated_values.find(fieldName);
+        if(it != updated_values.end()) {
+            if(fieldName == "Point") {
+                arrow::Int64Builder builder;
+                int64_t value;
+                try
+                {
+                    value = std::stoll(it->second);
+                }
+                catch(...){
+                    std::cerr << "Invalid integer value for column Point: " << it->second << std::endl;
+                    return arrow::Status::Invalid("Invalid integer value for column Point");
+                }
+                int64_t currentRow = 0;
+                for (const auto& chunk : column->chunks()) {
+                    auto int64_array = std::static_pointer_cast<arrow::Int64Array>(chunk);
+                    for(int64_t i = 0; i < int64_array->length(); i++, currentRow++) {
+                        if(rowToUpdate >= 0 && rowToUpdate < table->num_rows() && currentRow == rowToUpdate) {
+                            ARROW_RETURN_NOT_OK(builder.Append(value));
+                        } else {
+                            ARROW_RETURN_NOT_OK(builder.Append(int64_array->Value(i)));
+                        }
+                    }
+                }
+                ARROW_RETURN_NOT_OK(builder.Finish(&newColumn));
+            } else {
+                arrow::StringBuilder builder;
+                int64_t currentRow = 0;
+                for (const auto& chunk : column->chunks()) {
+                    auto string_array = std::static_pointer_cast<arrow::StringArray>(chunk);
+                    for(int64_t i = 0; i < string_array->length(); i++, currentRow++) {
+                        if(rowToUpdate >= 0 && rowToUpdate < table->num_rows() && currentRow == rowToUpdate) {
+                            ARROW_RETURN_NOT_OK(builder.Append(it->second));
+                        } else if(string_array->IsNull(i)) {
+                            ARROW_RETURN_NOT_OK(builder.AppendNull());
+                        } else {
+                            ARROW_RETURN_NOT_OK(builder.Append(string_array->GetString(i)));
+                        }
+                    }
+                }
+                ARROW_RETURN_NOT_OK(builder.Finish(&newColumn));}
+        } else {
+            arrow::ArrayVector chunks = column->chunks();
+            if(chunks.size() == 1) {
+                newColumn = chunks[0];
+            } else {
+                ARROW_ASSIGN_OR_RAISE(newColumn, arrow::Concatenate(chunks));
+            }
+        }
+        newColumns.push_back(newColumn);
+    }
+        std::cout << "Updating columns created: " << filename << std::endl; 
+
+        //Tạo bảng mới
+        auto newTable = arrow::Table::Make(table->schema(), newColumns);
+        //Ghi bảng mới vào file parquet
+        std::shared_ptr<arrow::io::FileOutputStream> outfile;
+        ARROW_ASSIGN_OR_RAISE(outfile, arrow::io::FileOutputStream::Open(filename));
+        parquet::WriterProperties::Builder props_builder;
+        std::shared_ptr<parquet::WriterProperties> props = props_builder.build();
+        ARROW_RETURN_NOT_OK(parquet::arrow::WriteTable(
+            *newTable,
+            arrow::default_memory_pool(),
+            outfile,
+            1024,
+            props
+        ));
+        ARROW_RETURN_NOT_OK(outfile->Close());
+        std::cout << "Successfully updated user info in file: " << filename << std::endl;
+        return arrow::Status::OK();
+    }

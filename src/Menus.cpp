@@ -17,6 +17,8 @@
 #include <iomanip>
 #include <fstream>
 using namespace std;
+
+
 void printAdminHomeMenu() {
     cout << "ADMIN HOME MENU" << endl;
     cout << "---------------------------------" << endl;
@@ -84,12 +86,14 @@ void printmainMenu() {
     cout << "Enter your choice: ";
 }
 
-std::string trim(const std::string& str) {
-    size_t first = str.find_first_not_of(' ');
-    if (first == std::string::npos) return str; // no leading spaces
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
-}
+// std::string trim(const std::string& str) {
+//     size_t first = str.find_first_not_of(' \t\n\r');
+//     size_t last = str.find_last_not_of(' \t\n\r');
+//     if (first == std::string::npos || last == std::string::npos) {
+//         return ""; // No non-whitespace characters found
+//     }
+//     return str.substr(first, (last - first + 1));
+// }
 
 bool isUserExist(std::string userName) {
     // Check if the user exists in the database
@@ -124,19 +128,19 @@ bool isvalisfullName(std::string fullname) {
     // Check if the full name is valid
     // This is a placeholder function. You need to implement the actual logic.
     // For now, let's assume the full name is valid.
-    if (fullname.length() < 5) {
-        cout << "Full name is too short. Minimum length is 5 characters." << endl;
-        return false;
-    }
-    else
+    // if (fullname.length() < 5) {
+    //     cout << "Full name is too short. Minimum length is 5 characters." << endl;
+    //     return false;
+    // }
+    // else
  if(fullname.empty()) {
         cout << "Full name cannot be empty." << endl;
         return false;
     }
-    else if (fullname.length() > 50) {
-        cout << "Full name is too long. Maximum length is 50 characters." << endl;
-        return false;
-    } else { for(char c : fullname) {
+    // else if (fullname.length() > 50) {
+    //     cout << "Full name is too long. Maximum length is 50 characters." << endl;
+    //     return false;
+    else { for(char c : fullname) {
         if(!isalpha(c) && c != ' ') {
             cout << "Full name can only contain letters and spaces." << endl;
             return false;
@@ -258,6 +262,7 @@ User * enterUserInfoRegister(){
     User * user = new User(FullName, userName, hashedPassword, 0, genSalt, genWalletId);
     return user;    
 }
+
 bool UserEditMenu(Admin * currentAdmin) {
     int userEditMenuOption;
     do {
@@ -407,7 +412,6 @@ void AdminLoginMenu() {
 
 }
 
-
 void changeuserinfo(std::string& filename, User *& currentUser) {
     if(!currentUser) {
         std::cerr << "Error: Current user is null!" << std::endl;
@@ -481,10 +485,14 @@ void eWallet(User *& currentUser) {
         cin >> subChoice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
-            string dbWalletId;
-            cout << "Enter wallet ID to transfer points: ";
-            cin >> dbWalletId;
-            cout << "transfer point comming soon!" << endl;
+            std::string filename = "../assets/users.parquet";
+            arrow::Status status = transferPoint(filename, currentUser);
+            if (!status.ok()) {
+                cout << "Error transferring points: " << status.ToString() << endl;
+                continue;
+            } else {
+                cout << "Points transferred successfully!" << endl;
+            }
         } else if(subChoice==2){
             cout << "transaction history comming soon!" << endl;
         } else if(subChoice==3){

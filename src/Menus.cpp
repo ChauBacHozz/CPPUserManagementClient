@@ -183,6 +183,7 @@ User * enterUserInfo(){
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     cout << "User fullname: ";
+    cin.ignore();
     getline(cin, fullName);
     cout << "User username: ";
     cin >> userName;

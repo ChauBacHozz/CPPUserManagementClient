@@ -67,47 +67,47 @@ bool verifyOTP(const std::string& enteredOTP, const std::string& secretKey, cons
     return false;
 }
 
-int main() {
-    std::string accountNumber;
-    std::cout << "Nhap so tai khoan: ";
-    std::cin >> accountNumber;
+// int main() {
+//     std::string accountNumber;
+//     std::cout << "Nhap so tai khoan: ";
+//     std::cin >> accountNumber;
 
-    std::string accountSpecificSecretKey = SECRET_KEY_PREFIX + accountNumber;
+//     std::string accountSpecificSecretKey = SECRET_KEY_PREFIX + accountNumber;
 
-    bool transactionSuccess = false;
-    bool tooManyAttempts = false;
+//     bool transactionSuccess = false;
+//     bool tooManyAttempts = false;
 
-    while (!transactionSuccess && !tooManyAttempts) {
-        std::string transactionID = generateTransactionID();
-        std::cout << "Bat dau giao dich voi ID: " << transactionID << std::endl;
+//     while (!transactionSuccess && !tooManyAttempts) {
+//         std::string transactionID = generateTransactionID();
+//         std::cout << "Bat dau giao dich voi ID: " << transactionID << std::endl;
 
-        std::string otp = generateOTP(accountSpecificSecretKey, transactionID);
-        std::cout << "OTP cho giao dich " << transactionID << " la: " << otp << std::endl;
-        std::cout << "OTP nay co gia tri trong khoang " << OTP_VALIDITY_SECONDS << " giay." << std::endl;
+//         std::string otp = generateOTP(accountSpecificSecretKey, transactionID);
+//         std::cout << "OTP cho giao dich " << transactionID << " la: " << otp << std::endl;
+//         std::cout << "OTP nay co gia tri trong khoang " << OTP_VALIDITY_SECONDS << " giay." << std::endl;
 
-        int attempts = 0;
-        bool verified = false;
+//         int attempts = 0;
+//         bool verified = false;
 
-        while (attempts < MAX_OTP_ATTEMPTS && !verified) {
-            std::string enteredOTP;
-            std::cout << "Nhap OTP de xac thuc giao dich " << transactionID << " (Lan thu " << attempts + 1 << "): ";
-            std::cin >> enteredOTP;
-            attempts++;
+//         while (attempts < MAX_OTP_ATTEMPTS && !verified) {
+//             std::string enteredOTP;
+//             std::cout << "Nhap OTP de xac thuc giao dich " << transactionID << " (Lan thu " << attempts + 1 << "): ";
+//             std::cin >> enteredOTP;
+//             attempts++;
 
-            if (verifyOTP(enteredOTP, accountSpecificSecretKey, transactionID)) {
-                std::cout << "Xac thuc OTP thanh cong cho giao dich " << transactionID << "! Giao dich duoc phep thuc hien." << std::endl;
-                verified = true;
-                transactionSuccess = true;
-            } else {
-                if (attempts < MAX_OTP_ATTEMPTS) {
-                    std::cout << "OTP khong chinh xac. Vui long thu lai." << std::endl;
-                } else {
-                    std::cout << "Ban da nhap sai OTP qua " << MAX_OTP_ATTEMPTS << " lan. Giao dich bi tu choi." << std::endl;
-                    tooManyAttempts = true; // THOÁT khỏi vòng lặp bên ngoài
-                }
-            }
-        }
-    }
+//             if (verifyOTP(enteredOTP, accountSpecificSecretKey, transactionID)) {
+//                 std::cout << "Xac thuc OTP thanh cong cho giao dich " << transactionID << "! Giao dich duoc phep thuc hien." << std::endl;
+//                 verified = true;
+//                 transactionSuccess = true;
+//             } else {
+//                 if (attempts < MAX_OTP_ATTEMPTS) {
+//                     std::cout << "OTP khong chinh xac. Vui long thu lai." << std::endl;
+//                 } else {
+//                     std::cout << "Ban da nhap sai OTP qua " << MAX_OTP_ATTEMPTS << " lan. Giao dich bi tu choi." << std::endl;
+//                     tooManyAttempts = true; // THOÁT khỏi vòng lặp bên ngoài
+//                 }
+//             }
+//         }
+//     }
     
-    return 0;
-}
+//     return 0;
+// }

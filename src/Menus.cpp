@@ -7,6 +7,9 @@
 #include <string>
 #include "arrow/io/file.h"
 #include "parquet/stream_reader.h"
+#include "parquet/arrow/reader.h"
+#include "parquet/arrow/writer.h"
+#include "arrow/table.h"
 #include <openssl/sha.h>
 #include "DbUtils.h"
 #include <encrypt.h>
@@ -81,22 +84,89 @@ void printmainMenu() {
     cout << "Enter your choice: ";
 }
 
+std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(' ');
+    if (first == std::string::npos) return str; // no leading spaces
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
 bool isUserExist(std::string userName) {
     // Check if the user exists in the database
     // This is a placeholder function. You need to implement the actual logic.
     // For now, let's assume the user does not exist.
-    std::ifstream infile("../assets/user_info.csv");
-    std::string line;
-    while (std::getline(infile, line)) {
-        std::istringstream iss(line);
-        std::string name;
-        if (std::getline(iss, name, ',')) {
-            if (name == userName) {
+    std::shared_ptr<arrow::io::ReadableFile> infile;
+    PARQUET_ASSIGN_OR_THROW(
+        infile,
+        arrow::io::ReadableFile::Open("../assets/users.parquet"));
+    std::unique_ptr<parquet::arrow::FileReader> fileReader;
+    PARQUET_ASSIGN_OR_THROW(fileReader, parquet::arrow::OpenFile(infile, arrow::default_memory_pool()));
+    std::shared_ptr<arrow::Table> table;
+    PARQUET_THROW_NOT_OK(fileReader->ReadTable(&table));
+    auto column = table->GetColumnByName("UserName");
+    if(!column) {
+        std::cerr << "Column not found!" << std::endl;
+        return false;
+    }
+    for(const auto& chunk : column->chunks()) {
+        auto string_column = std::static_pointer_cast<arrow::StringArray>(chunk);
+        for (int64_t i = 0; i < string_column->length(); i++) {
+            if(!string_column->IsNull(i) && string_column->GetString(i) == userName) {
                 return true; // User exists
             }
         }
     }
     return false; // User does not exist
+}
+
+bool isvalisfullName(std::string fullname) {
+    fullname = trim(fullname);
+    // Check if the full name is valid
+    // This is a placeholder function. You need to implement the actual logic.
+    // For now, let's assume the full name is valid.
+    if (fullname.length() < 5) {
+        cout << "Full name is too short. Minimum length is 5 characters." << endl;
+        return false;
+    }
+    else
+ if(fullname.empty()) {
+        cout << "Full name cannot be empty." << endl;
+        return false;
+    }
+    else if (fullname.length() > 50) {
+        cout << "Full name is too long. Maximum length is 50 characters." << endl;
+        return false;
+    } else { for(char c : fullname) {
+        if(!isalpha(c) && c != ' ') {
+            cout << "Full name can only contain letters and spaces." << endl;
+            return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool isvalidPassword(std::string password) {
+    if(password.empty()) {
+        cout << "Password cannot be empty." << endl;
+        return false;
+    }
+    else if (password.length() < 8) {
+        cout << "Password is too short. Minimum length is 8 characters." << endl;
+        return false;
+    } 
+    bool hasUpper = false,
+         hasLower = false,
+         hasDigit = false,
+         hasSpecial = false;
+    for (char c : password) {
+        if (isupper(c)) hasUpper = true;
+        else if (islower(c)) hasLower = true;
+        else if (isdigit(c)) hasDigit = true;
+        else if (ispunct(c)) hasSpecial = true;
+    }
+
+    return hasUpper && hasLower && hasDigit && hasSpecial;
 }
 
 User * enterUserInfo(){
@@ -109,7 +179,6 @@ User * enterUserInfo(){
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     cout << "User fullname: ";
-    cin.ignore();
     getline(cin, fullName);
     cout << "User username: ";
     cin >> userName;
@@ -125,7 +194,7 @@ User * enterUserInfo(){
 
 User * enterUserInfoRegister(){
     system("cls");
-    string fullName;
+    string FullName;
     string userName;
     string password;
     string genPassword;
@@ -133,9 +202,15 @@ User * enterUserInfoRegister(){
     string genWalletId;
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
-    cout << "User fullname: ";
-    cin.ignore();
-    getline(cin, fullName);
+    do {
+    cout << "User FullName: ";
+    getline(cin, FullName);
+    FullName = trim(FullName);
+    if(!isvalisfullName(FullName)) {
+        cout << "Invalid full name. Please try again." << endl;
+    }
+    } while (!isvalisfullName(FullName));
+
     while (true){
         cout << "User username: ";
         cin >> userName;
@@ -143,27 +218,44 @@ User * enterUserInfoRegister(){
             cout << "Username already exists. Please try again." << endl;
         } 
         else {
+            cout << "Username is valid." << endl;
             break; // Exit the loop if the username is unique
         }  
     }
-    cin.ignore();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
+    
+    do {
     cout << "User password: "; 
-    getline(cin, genPassword);
+    getline(cin, password);
+    password = trim(password);
+    genSalt = generateSaltStr();
 
-    if (password.empty()) {
-        genPassword = generateSaltStr(12);
-        cout << "Password: " << genPassword << endl;
-    } else {
+    if (!password.empty()) {
+        if (!isvalidPassword(password)) {
+            std::cout << "Invalid password. Must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 digit, and 1 special character." << endl;
+        } else {
         genPassword = password;
+        break;
+        }
+    } else {
+            genPassword = generateSaltStr(12);
+            std::cout << "Generated Password: " << genPassword << std::endl;
+            std::cout << "Please note down this password for login!" << std::endl;
+            break;
     }
+} while(true);
+
     cout << "---------------------------" << endl;
 
-    // Generate random password for first time register
-    genSalt = generateSaltStr();
+    std::string hashedPassword = sha256(genPassword + genSalt);
+    if(hashedPassword.empty()) {
+        cout << "Error hashing password." << endl;
+        return NULL;
+    }
     genWalletId = sha256(genPassword + genSalt);
     cout << "Generated password: " << genPassword << endl;
 
-    User * user = new User(fullName, userName, genPassword, 0, genSalt, genWalletId);
+    User * user = new User(FullName, userName, hashedPassword, 0, genSalt, genWalletId);
     return user;    
 }
 bool UserEditMenu(Admin * currentAdmin) {
@@ -258,7 +350,11 @@ void AdminLoginMenu() {
                 bool exit = false;
                 do
                 {
-                    printUserInfoFromDb();
+                    arrow::Status status = printUserInfoFromDb();
+                    if (!status.ok()) {
+                        std::cerr << "Error printing user info: " << status.ToString() << std::endl;
+                        break;
+                    }
                     
                     std::cout << "Enter Z to go back: ";
                     std::string exit_char;
@@ -284,7 +380,7 @@ void AdminLoginMenu() {
                 } while (!exit);
                 
     
-                // currentAdmin->createUser(user1->fullName(), user1->accountName(), user1->password(), user1->point());
+                // currentAdmin->createUser(user1->fullname(), user1->accountName(), user1->password(), user1->point());
                 break;
             }
     
@@ -312,7 +408,12 @@ void AdminLoginMenu() {
 }
 
 
-void changeuserinfo(User *& currentUser) {
+void changeuserinfo(std::string& filename, User *& currentUser) {
+    if(!currentUser) {
+        std::cerr << "Error: Current user is null!" << std::endl;
+        return;
+    }
+
     while (true){
         int subChoice;
         printchangeUserInfoMenu();
@@ -320,18 +421,41 @@ void changeuserinfo(User *& currentUser) {
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
             string newFullName;
-            cout << "Enter new full name: ";
+            cout << "Enter new full Name: ";
             getline(cin, newFullName);
+            newFullName = trim(newFullName);
+            if(newFullName.empty()){
+                cout << "Error: Full name cannot be empty!" << std::endl;
+                continue;
+            }
             currentUser->setFullName(newFullName);
+            std::map<std::string, std::string> updated_values={
+                {"Fullname", currentUser->fullName()}
+            };
+            arrow::Status status = updateUserInfo(filename, currentUser, updated_values);
+            if (!status.ok()) {
+                cout << "Error updating user info: " << status.ToString() << endl;
+                continue;
+            }
             cout << "Full name changed successfully!" << endl;
         } else if(subChoice==2){
             string newPassword;
             cout << "Enter new password: ";
             getline(cin, newPassword);
+            newPassword = trim(newPassword);
             if(!newPassword.empty()){
                 string salt = currentUser->salt();
                 string hashedPassword = sha256(newPassword + salt);
                 currentUser->setPassword(hashedPassword);
+                map<string, string> updated_values={
+                    {"Password", hashedPassword},        
+                    {"Salt", salt}
+                };
+                arrow::Status status = updateUserInfo(filename, currentUser, updated_values);
+                if (!status.ok()) {
+                    cout << "Error updating user info: " << status.ToString() << endl;
+                    continue;
+                }
                 cout << "Password changed successfully!" << endl;
             }
             else{
@@ -339,6 +463,7 @@ void changeuserinfo(User *& currentUser) {
             }
         } else if(subChoice==3){
             cout << "Back to main menu" << endl;
+            cout << "DEBUG: End of changeuserinfo" << endl;
             break; // Exit the loop to go back to the main menu
         } else {
             cout << "Invalid choice. Please try again." << endl;
@@ -382,7 +507,8 @@ void UserLoginMenu(User *& currentUser) {
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(choice==1){
            printUserInfoFromDb(currentUser);
-           changeuserinfo(currentUser);
+           std::string filename = "../assets/users.parquet";
+           changeuserinfo(filename, currentUser);
         } else if(choice==2){
             eWallet(currentUser);
         } else if(choice==3){
@@ -410,7 +536,13 @@ void userHomeMenu() {
         } else if(choice==2){
             // User * 
             User * new_user = enterUserInfoRegister();
-            registerUser(new_user);
+            arrow::Status status = registerUser(new_user);
+            if(!status.ok()) {
+                cout << "Error registering user: " << status.ToString() << endl;
+                return;
+            }else {
+                cout << "User registered successfully!" << endl;
+            }
             UserLoginMenu(new_user);
             cout << "User registered successfully!" << endl;
         } else if(choice==3){

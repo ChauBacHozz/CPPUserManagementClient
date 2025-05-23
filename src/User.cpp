@@ -27,8 +27,8 @@ void User::setSalt( std::string &salt) {
 std::string User::fullName()  {
     return this->FullName;
 }
-void User::setFullName( std::string &fullName) {
-    this->FullName = fullName;
+void User::setFullName( std::string &FullName) {
+    this->FullName = FullName;
 }
 
 std::string User::accountName()  {

@@ -35,7 +35,7 @@ arrow::Status getTableFromFile(std::string& filename, std::shared_ptr<arrow::Tab
 }
 
 arrow::Status AppendUserParquetRow(std::string& filename, 
-                                   std::string& Fullname, 
+                                   std::string& FullName, 
                                    std::string& UserName, 
                                    std::string& UserPassword, 
                                    std::string& Salt, 
@@ -50,7 +50,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     std::shared_ptr<arrow::Schema> schema = existing_table->schema();
 
     // Tạo builder cho dòng mới 
-    arrow::StringBuilder bdFullname;
+    arrow::StringBuilder bdFullName;
     arrow::StringBuilder bdUserName;
     arrow::StringBuilder bdUserPassword;
     arrow::StringBuilder bdUserSalt;
@@ -58,7 +58,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     arrow::StringBuilder bdWalletId;
     
     // Thêm giá trị mới vào các builder
-    ARROW_RETURN_NOT_OK(bdFullname.Append(Fullname));
+    ARROW_RETURN_NOT_OK(bdFullName.Append(FullName));
     ARROW_RETURN_NOT_OK(bdUserName.Append(UserName));
     ARROW_RETURN_NOT_OK(bdUserPassword.Append(UserPassword));
     ARROW_RETURN_NOT_OK(bdUserSalt.Append(Salt));
@@ -66,14 +66,14 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     ARROW_RETURN_NOT_OK(bdWalletId.Append(WalletId));
     
     // Chuyển builder về dạng array
-    std::shared_ptr<arrow::Array> arrFullname;
+    std::shared_ptr<arrow::Array> arrFullName;
     std::shared_ptr<arrow::Array> arrUserName;
     std::shared_ptr<arrow::Array> arrUserPassword;
     std::shared_ptr<arrow::Array> arrSalt;
     std::shared_ptr<arrow::Array> arrPoint;
     std::shared_ptr<arrow::Array> arrWalletId;
 
-    ARROW_RETURN_NOT_OK(bdFullname.Finish(&arrFullname));
+    ARROW_RETURN_NOT_OK(bdFullName.Finish(&arrFullName));
     ARROW_RETURN_NOT_OK(bdUserName.Finish(&arrUserName));
     ARROW_RETURN_NOT_OK(bdUserPassword.Finish(&arrUserPassword));
     ARROW_RETURN_NOT_OK(bdUserSalt.Finish(&arrSalt));
@@ -81,7 +81,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     ARROW_RETURN_NOT_OK(bdWalletId.Finish(&arrWalletId));
 
     // Chuyển thành dạng bảng
-    std::vector<std::shared_ptr<arrow::Array>> new_arrays = {arrFullname, 
+    std::vector<std::shared_ptr<arrow::Array>> new_arrays = {arrFullName, 
                                                              arrUserName, 
                                                              arrUserPassword, 
                                                              arrSalt, 
@@ -117,7 +117,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
 }
 
 arrow::Status AppendBatchUserParquetRows(std::string& filename,
-                                        std::vector<std::string>& FullnameArr,
+                                        std::vector<std::string>& FullNameArr,
                                         std::vector<std::string>& UserNameArr,
                                         std::vector<std::string>& UserPasswordArr,
                                         std::vector<std::string>& SaltArr,
@@ -141,8 +141,8 @@ arrow::Status AppendBatchUserParquetRows(std::string& filename,
     arrow::StringBuilder bdWalletId;
     
     // Thêm giá trị mới vào các builder
-    for (int i = 0; i < FullnameArr.size(); i++) {
-        ARROW_RETURN_NOT_OK(bdFullName.Append(FullnameArr[i]));
+    for (int i = 0; i < FullNameArr.size(); i++) {
+        ARROW_RETURN_NOT_OK(bdFullName.Append(FullNameArr[i]));
         ARROW_RETURN_NOT_OK(bdUserName.Append(UserNameArr[i]));
         ARROW_RETURN_NOT_OK(bdUserPassword.Append(UserPasswordArr[i]));
         ARROW_RETURN_NOT_OK(bdUserSalt.Append(SaltArr[i]));

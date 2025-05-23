@@ -120,6 +120,15 @@ bool isUserExist(std::string userName) {
 }
 
 bool isvalisfullName(std::string fullname) {
+    fullname = trim(fullname);
+    // Check if the full name is valid
+    // This is a placeholder function. You need to implement the actual logic.
+    // For now, let's assume the full name is valid.
+    if (fullname.length() < 5) {
+        cout << "Full name is too short. Minimum length is 5 characters." << endl;
+        return false;
+    }
+    else
  if(fullname.empty()) {
         cout << "Full name cannot be empty." << endl;
         return false;
@@ -162,7 +171,7 @@ bool isvalidPassword(std::string password) {
 
 User * enterUserInfo(){
     system("cls");
-    string fullname;
+    string fullName;
     string userName;
     string password;
     int point;
@@ -170,7 +179,7 @@ User * enterUserInfo(){
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     cout << "User fullname: ";
-    getline(cin, fullname);
+    getline(cin, fullName);
     cout << "User username: ";
     cin >> userName;
     cout << "User password: ";
@@ -185,7 +194,7 @@ User * enterUserInfo(){
 
 User * enterUserInfoRegister(){
     system("cls");
-    string Fullname;
+    string FullName;
     string userName;
     string password;
     string genPassword;
@@ -195,12 +204,12 @@ User * enterUserInfoRegister(){
     cout << "---------------------------" <<endl;
     do {
     cout << "User FullName: ";
-    getline(cin, Fullname);
-    Fullname = trim(Fullname);
-    if(!isvalisfullName(Fullname)) {
+    getline(cin, FullName);
+    FullName = trim(FullName);
+    if(!isvalisfullName(FullName)) {
         cout << "Invalid full name. Please try again." << endl;
     }
-    } while (!isvalisfullName(Fullname));
+    } while (!isvalisfullName(FullName));
 
     while (true){
         cout << "User username: ";
@@ -246,7 +255,7 @@ User * enterUserInfoRegister(){
     genWalletId = sha256(genPassword + genSalt);
     cout << "Generated password: " << genPassword << endl;
 
-    User * user = new User(Fullname, userName, hashedPassword, 0, genSalt, genWalletId);
+    User * user = new User(FullName, userName, hashedPassword, 0, genSalt, genWalletId);
     return user;    
 }
 bool UserEditMenu(Admin * currentAdmin) {
@@ -411,15 +420,15 @@ void changeuserinfo(std::string& filename, User *& currentUser) {
         cin >> subChoice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
-            string newFullname;
-            cout << "Enter new full name: ";
-            getline(cin, newFullname);
-            newFullname = trim(newFullname);
-            if(newFullname.empty()){
+            string newFullName;
+            cout << "Enter new full Name: ";
+            getline(cin, newFullName);
+            newFullName = trim(newFullName);
+            if(newFullName.empty()){
                 cout << "Error: Full name cannot be empty!" << std::endl;
                 continue;
             }
-            currentUser->setFullName(newFullname);
+            currentUser->setFullName(newFullName);
             std::map<std::string, std::string> updated_values={
                 {"Fullname", currentUser->fullName()}
             };

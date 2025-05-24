@@ -197,7 +197,7 @@ User * enterUserInfo(){
     return user;    
 }
 
-User * enterUserInfoRegister(){
+User * enterUserInfoRegister(bool enterPoint = false){
     system("cls");
     string FullName;
     string userName;
@@ -209,6 +209,7 @@ User * enterUserInfoRegister(){
     cout << "---------------------------" <<endl;
     do {
     cout << "User FullName: ";
+    cin.ignore();
     getline(cin, FullName);
     FullName = trim(FullName);
     if(!isvalisfullName(FullName)) {
@@ -230,26 +231,32 @@ User * enterUserInfoRegister(){
     cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
     
     do {
-    cout << "User password: "; 
-    getline(cin, password);
-    password = trim(password);
-    genSalt = generateSaltStr();
+        cout << "User password: "; 
+        cin.ignore();
+        getline(cin, password);
+        password = trim(password);
+        genSalt = generateSaltStr();
 
-    if (!password.empty()) {
-        if (!isvalidPassword(password)) {
-            std::cout << "Invalid password. Must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 digit, and 1 special character." << endl;
+        if (!password.empty()) {
+            if (!isvalidPassword(password)) {
+                std::cout << "Invalid password. Must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 digit, and 1 special character." << endl;
+            } else {
+            genPassword = password;
+            break;
+            }
         } else {
-        genPassword = password;
-        break;
-        }
-    } else {
             genPassword = generateSaltStr(12);
             std::cout << "Generated Password: " << genPassword << std::endl;
             std::cout << "Please note down this password for login!" << std::endl;
             break;
-    }
-} while(true);
+        }
+    } while(true);
+    int userPoint = 0;
+    if (enterPoint) {
+        cout << "Enter user point: ";
+        cin >> userPoint;
 
+    }
     cout << "---------------------------" << endl;
 
     std::string hashedPassword = sha256(genPassword + genSalt);
@@ -260,7 +267,7 @@ User * enterUserInfoRegister(){
     genWalletId = sha256(genPassword + genSalt);
     cout << "Generated password: " << genPassword << endl;
 
-    User * user = new User(FullName, userName, hashedPassword, 0, genSalt, genWalletId);
+    User * user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
     return user;    
 }
 
@@ -279,12 +286,28 @@ bool UserEditMenu(Admin * currentAdmin) {
         case 1: {
             cout << "Add user" << endl; 
             /* code */
-            User * user1 = enterUserInfo();
-            if (user1 == NULL)
+            string saveParquetFileName = "../assets/users.parquet";
+
+            User * user = enterUserInfoRegister(true);
+            if (user == NULL)
             {
                 cout << "Enter user info failed" << endl;
                 break;
             }
+            std::string fullName = user->fullName();
+            std::string accountName = user->accountName();
+            std::string password = user->password();
+            std::string salt = user->salt();
+            int point = user->point();
+            std::string wallet = user->wallet();
+        
+            arrow::Status resultRegisterUser = AppendUserParquetRow(saveParquetFileName,
+                                                                    fullName,
+                                                                    accountName,
+                                                                    password,
+                                                                    salt,
+                                                                    point,
+                                                                    wallet);
             break;
             
         }

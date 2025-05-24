@@ -4,6 +4,7 @@
 User::User(){
 
 }
+
 User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
 {
 

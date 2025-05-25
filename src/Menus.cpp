@@ -510,6 +510,7 @@ void eWallet(User *& currentUser) {
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
             std::string filename = "../assets/users.parquet";
+            try {
             arrow::Status status = transferPoint(filename, currentUser);
             if (!status.ok()) {
                 cout << "Error transferring points: " << status.ToString() << endl;
@@ -517,6 +518,14 @@ void eWallet(User *& currentUser) {
             } else {
                 cout << "Points transferred successfully!" << endl;
             }
+        }
+        catch (const std::exception& e) {
+            cout << "Exception occurred: " << e.what() << endl;
+        } catch (...) {
+            cout << "An unknown error occurred." << endl;
+        }
+        } else if(subChoice==2){
+            cout << "transaction history comming soon!" << endl;
         } else if(subChoice==2){
             cout << "transaction history comming soon!" << endl;
         } else if(subChoice==3){

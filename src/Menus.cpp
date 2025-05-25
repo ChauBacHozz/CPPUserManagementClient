@@ -526,8 +526,6 @@ void eWallet(User *& currentUser) {
         }
         } else if(subChoice==2){
             cout << "transaction history comming soon!" << endl;
-        } else if(subChoice==2){
-            cout << "transaction history comming soon!" << endl;
         } else if(subChoice==3){
             cout << "transaction history by time comming soon!" << endl;
         } else if(subChoice==4){

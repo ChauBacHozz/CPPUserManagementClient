@@ -687,7 +687,7 @@ void logTransaction(const std::string& senderWalletId,
                     const std::string& receiverFullName, 
                     int64_t transferPoint,
                     bool isSuccess) {
-    const std::string logFilename = "...logs/transaction.log";
+    const std::string logFilename = "../logs/transaction.log";
     const uint64_t maxfileSize = 100 * 1024 * 1024; // 100MB
 
     if(std::filesystem::exists(logFilename)) {
@@ -893,7 +893,7 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
 
         // int64_t receiverPoints = 0;
         // int receiverRow;
-        // std::string receiverUserName;
+        // std::string receiverUserName;    
         std::string errorMessage;
         if(!checkWalletIdAndFullName(filename, 
                                      receiverWalletId, 

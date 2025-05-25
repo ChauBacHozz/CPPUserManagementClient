@@ -390,19 +390,20 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
     int64_t dbUserPoint;
     bool userfound = false;
  
-  
-    while (!stream.eof() ){ 
+    while (!stream.eof() ){
         stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
 
         if (userName == dbUserName) {
-            userfound = true;
-            break;
-        }   
+            userfound = true; 
+            break; 
+        }
     }
     if (!userfound) {
         std::cout << "Login failed! (User invalid)" << std::endl;
         currentUser = nullptr;
+        return;
     }
+
     int failedLoginCount = 0;
     while (failedLoginCount < 3) {
         std::string userpassword;
@@ -687,7 +688,27 @@ void logTransaction(const std::string& senderWalletId,
                     const std::string& receiverFullName, 
                     int64_t transferPoint,
                     bool isSuccess) {
-    const std::string logFilename = "../logs/transaction.log";
+    const std::string logFilename = "../logs/transaction.log"; // Đường dẫn đến file log 
+    // Kiểm tra kích thước file log, nếu lớn hơn 100MB thì backup và tạo file mới
+    std::filesystem::path logPath(logFilename); // Chuyển đổi đường dẫn thành đối tượng std::filesystem::path
+    if(!std::filesystem::exists(logPath.parent_path())) { // Kiểm tra xem thư mục chứa file log có tồn tại không
+        // Nếu không tồn tại, tạo thư mục
+        std::filesystem::create_directories(logPath.parent_path());
+    }
+    // Giới hạn kích thước file log là 100MB
+    // Nếu file log đã tồn tại, kiểm tra kích thước của nó
+    // Nếu kích thước lớn hơn 100MB, backup file log và tạo file mới
+    // Kiểm tra xem file log đã tồn tại hay chưa
+    if(!std::filesystem::exists(logFilename)) {
+        // Nếu file log chưa tồn tại, tạo mới
+        std::ofstream logFile(logFilename);
+        if(!logFile.is_open()) {
+            std::cerr << "Error: Unable to create log file!" << std::endl;
+            return;
+        }
+        logFile.close();
+    }
+    std::string generate_TxId = generateTxId();
     const uint64_t maxfileSize = 100 * 1024 * 1024; // 100MB
 
     if(std::filesystem::exists(logFilename)) {
@@ -702,10 +723,10 @@ void logTransaction(const std::string& senderWalletId,
         // Ghi log vào file
         std::ofstream logFile(logFilename, std::ios::app);
         if(logFile.is_open()) {
-            logFile << "[" << generateTxId << timestamp_ms << "] Transfer"
-                    << "From WalletId = " << senderWalletId << " (" << senderuserName << ", " << senderFullName << ")"
-                    << "To WalletId = " << receiverWalletId << " (" << receiveruserName << ", " << receiverFullName << ")"
-                    << "Points transferred: " << transferPoint << "Status: " << (isSuccess ? "Success" : "Failed") << "\n";
+            logFile << "[" << generate_TxId << " " << timestamp_ms << "] Transfer"
+                    << " From WalletId = " << senderWalletId << " (" << senderuserName << ", " << senderFullName << ")"
+                    << " To WalletId = " << receiverWalletId << " (" << receiveruserName << ", " << receiverFullName << ")"
+                    << " Points transferred: " << transferPoint << " Status: " << (isSuccess ? "Success" : "Failed") << "\n";
             logFile.close();
         } else {
             std::cerr << "Error: Unable to open log file!" << std::endl;

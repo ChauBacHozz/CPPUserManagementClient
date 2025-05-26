@@ -687,7 +687,8 @@ void logTransaction(const std::string& senderWalletId,
                     const std::string& receiveruserName,
                     const std::string& receiverFullName, 
                     int64_t transferPoint,
-                    bool isSuccess) {
+                    bool isSuccess,
+                    const std::string& errorMessage = "") {
     const std::string logFilename = "../logs/transaction.log"; // Đường dẫn đến file log 
     // Kiểm tra kích thước file log, nếu lớn hơn 100MB thì backup và tạo file mới
     std::filesystem::path logPath(logFilename); // Chuyển đổi đường dẫn thành đối tượng std::filesystem::path
@@ -708,7 +709,7 @@ void logTransaction(const std::string& senderWalletId,
         }
         logFile.close();
     }
-    std::string generate_TxId = generateTxId();
+    
     const uint64_t maxfileSize = 100 * 1024 * 1024; // 100MB
 
     if(std::filesystem::exists(logFilename)) {
@@ -718,12 +719,13 @@ void logTransaction(const std::string& senderWalletId,
             std::rename(logFilename.c_str(), backupFilename.c_str());
         }
 
-        auto timestamp = std::chrono::system_clock::now();
-        auto timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
+        //std::string generate_TxId = generateTxId();
+        //auto timestamp = std::chrono::system_clock::now();
+        //auto timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
         // Ghi log vào file
         std::ofstream logFile(logFilename, std::ios::app);
         if(logFile.is_open()) {
-            logFile << "[" << generate_TxId << " " << timestamp_ms << "] Transfer"
+            logFile << "[" << generateTxId() << " " << getCurruntTime() << "] Transfer"
                     << " From WalletId = " << senderWalletId << " (" << senderuserName << ", " << senderFullName << ")"
                     << " To WalletId = " << receiverWalletId << " (" << receiveruserName << ", " << receiverFullName << ")"
                     << " Points transferred: " << transferPoint << " Status: " << (isSuccess ? "Success" : "Failed") << "\n";

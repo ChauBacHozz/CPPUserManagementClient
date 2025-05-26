@@ -1,7 +1,7 @@
 #include "User.h"
 #include <string>
 #include <iostream>
-User::User(){
+User::User() {
 
 }
 
@@ -18,28 +18,28 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
 }
 
 
-std::string User::salt()  {
+std::string User::salt() {
     return this->Salt;
 }
-void User::setSalt( std::string &salt) {
+void User::setSalt( std::string &salt){
     this->Salt = salt;
 }
 
-std::string User::fullName()  {
+std::string User::fullName() {
     return this->FullName;
 }
 void User::setFullName( std::string &FullName) {
     this->FullName = FullName;
 }
 
-std::string User::accountName()  {
+std::string User::accountName() {
     return this->AccountName;
 }
 void User::setAccountName( std::string &accountName) {
     this->AccountName = accountName;
 }
 
-std::string User::password()  {
+std::string User::password() {
     return this->Password;
 }
 void User::setPassword( std::string &password) {

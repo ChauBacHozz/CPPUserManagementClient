@@ -842,16 +842,24 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
     int64_t transferPoint = 0;
     
     while (true) {
-        std::cout << "Enter receiver's wallet ID: ";
+        std::cout << "Enter receiver's wallet ID (or 'z' to return menu): ";
         std::getline(std::cin, receiverWalletId);
         receiverWalletId = trim(receiverWalletId);
+        if (receiverWalletId == "z") {
+            std::cout << "Returning to menu..." << std::endl;
+            return arrow::Status::OK(); // Trả về OK để quay lại menu
+        }
         if (receiverWalletId.empty()) {
             std::cout << "Invalid wallet ID. Please try again." << std::endl;
             continue;
         }
-        std::cout << "Enter receiver's full name: ";
+        std::cout << "Enter receiver's full name (or 'z' to return menu): ";
         std::getline(std::cin, receiverFullName);
         receiverFullName = trim(receiverFullName);
+        if (receiverFullName == "z") {
+            std::cout << "Returning to menu..." << std::endl;
+            return arrow::Status::OK(); // Trả về OK để quay lại menu
+        }
         if (receiverFullName.empty()) {
             std::cout << "Invalid full name. Please try again." << std::endl;
             continue;
@@ -860,8 +868,12 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             continue;
         }
         
-        std::cout << "Enter points to transfer: ";
+        std::cout << "Enter points to transfer (or 'z' to return menu): ";
         std::cin >> transferPoint;
+        if(transferPoint == 'z') {
+            std::cout << "Returning to menu..." << std::endl;
+            return arrow::Status::OK(); // Trả về OK để quay lại menu
+        }
         if (std::cin.fail() || transferPoint <= 0) {
             std::cin.clear(); // Xóa trạng thái lỗi
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Bỏ qua dòng nhập không hợp lệ

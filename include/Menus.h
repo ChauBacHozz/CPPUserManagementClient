@@ -5,6 +5,12 @@
 
 void FirstLoginMenu();
 void AdminLoginMenu();
+void listTransactions(User* currentUser,
+                      std::string& username,
+                      std::string& IDWallet,
+                      std::string& startDate,
+                      std::string& endDate,
+                      bool isAdmin = false);
 void UserLoginMenu(User *& currentUser);
 void mainMenu();
 

@@ -375,10 +375,10 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
            infile,
             arrow::io::ReadableFile::Open("../assets/users.parquet"));
     } catch (const arrow::Status& status) {
-            std::cerr << "Error opening file: " << status.ToString() << std::endl;
-            currentUser = nullptr;
-            return;        
-        }
+        std::cerr << "Error opening file: " << status.ToString() << std::endl;
+        currentUser = nullptr;
+        return;        
+    }
 
     parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
 
@@ -392,7 +392,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
  
     while (!stream.eof() ){
         stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
-
+        std::cout << dbUserName << std::endl;
         if (userName == dbUserName) {
             userfound = true; 
             break; 
@@ -409,7 +409,6 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         std::string userpassword;
         std::cout << "Password: ";
         std::cin >> userpassword;
-
         std::string hashedPassword = sha256(userpassword + dbSalt);
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;

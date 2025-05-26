@@ -228,29 +228,9 @@ User * enterUserInfoRegister(bool enterPoint = false){
             break; // Exit the loop if the username is unique
         }  
     }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
     
-    do {
-        cout << "User password: "; 
-        cin.ignore();
-        getline(cin, password);
-        password = trim(password);
-        genSalt = generateSaltStr();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
 
-        if (!password.empty()) {
-            if (!isvalidPassword(password)) {
-                std::cout << "Invalid password. Must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 digit, and 1 special character." << endl;
-            } else {
-            genPassword = password;
-            break;
-            }
-        } else {
-            genPassword = generateSaltStr(12);
-            std::cout << "Generated Password: " << genPassword << std::endl;
-            std::cout << "Please note down this password for login!" << std::endl;
-            break;
-        }
-    } while(true);
     int userPoint = 0;
     if (enterPoint) {
         cout << "Enter user point: ";
@@ -258,15 +238,29 @@ User * enterUserInfoRegister(bool enterPoint = false){
 
     }
     cout << "---------------------------" << endl;
-
+    genPassword = generateSaltStr(12);
     std::string hashedPassword = sha256(genPassword + genSalt);
     if(hashedPassword.empty()) {
         cout << "Error hashing password." << endl;
         return NULL;
     }
     genWalletId = sha256(genPassword + genSalt);
-    cout << "Generated password: " << genPassword << endl;
 
+
+
+    std::string out_char;
+    do
+    {
+        system("cls");
+        std::cout << "Create user success" << std::endl;
+        std::cout << "Generated Password: " << genPassword << std::endl;
+        std::cout << "Please note down this password for login!" << std::endl;
+        std::cout << "Enter '0' to escape: " << std::endl;
+        cin >> out_char;
+
+
+    } while (out_char != "0");
+    
     User * user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
     return user;    
 }

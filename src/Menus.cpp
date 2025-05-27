@@ -16,6 +16,8 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <filesystem>
+#include <regex>
 using namespace std;
 
 
@@ -30,6 +32,7 @@ void printAdminHomeMenu() {
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
 }
+
 void printUserEditMenu() {
     cout << "USER EDITING MENU" << endl;
     cout << "---------------------------------" << endl;
@@ -39,6 +42,7 @@ void printUserEditMenu() {
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
 }
+
 void printUserInfoFromDb(User *& currentUser) {
     cout << "\n--- User Info ---\n";
     cout << "Full Name: " << currentUser->fullName() << endl;
@@ -493,6 +497,194 @@ void changeuserinfo(std::string& filename, User *& currentUser) {
     }
 }
 
+bool isLeapYear(int year) {
+    // Check if the year is a leap year
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+//Hàm kiểm tra định dạng ngày (YYY-MM-DD HH:MM:SS)
+bool isValidDateTime(const std::string& dateTime) {
+    std::regex dateTimePattern(R"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})");
+    return std::regex_match(dateTime, dateTimePattern);
+}
+
+std::string convertDateTime(const std::string& dateTime, bool isEndOfDay = false) {
+    if(dateTime.empty()) return "";
+    std::regex dateTimePattern(R"(\d{2}/\d{2}/\d{4})");
+    if(!std::regex_match(dateTime, dateTimePattern)) {
+        std::cerr << "Invalid date format. Expected format: DD/MM/YYYY." << std::endl;
+        return "";
+    }
+    int day, month, year;
+    std::stringstream ss(dateTime);
+    char delimiter1, delimiter2; // To handle the '/' delimiter
+    if(!(ss >> day >> delimiter1 >> month >> delimiter2 >> year) || delimiter1 != '/' || delimiter2 != '/') {
+        std::cerr << "Invalid date format. Expected format: DD/MM/YYYY." << std::endl;
+        return "";
+    }
+    
+    // std::cout << day << ", Month: " << month << ", Year: " << year << std::endl;
+    // Extract day, month, year
+    if(year < 1900 || year > 2100) {
+        std::cerr << "Year out of range. Please enter a year between 1900 and 2100." << std::endl;
+        return "";
+    }
+    if(month < 1 || month > 12) {
+        std::cerr << "Invalid month. Please enter a month between 1 and 12." << std::endl;
+        return "";
+    }
+
+    int daysInMonth [] = {31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 
+                                31, 31, 30, 31, 30, 31}; // Days in each month
+    if(day < 1 || day > daysInMonth[month - 1]) {
+        std::cerr << "Invalid day for the given month. Please enter a valid day." << std::endl;
+        return "";
+    }
+    // Convert to YYYY-MM-DD format
+    char buffer[20];
+    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %s", year, month, day, isEndOfDay ? "23:59:59" : "00:00:00");
+    return std::string(buffer);
+}
+
+//Hàm so sánh thời gian
+bool isWithinTimeRange(const std::string& dateTime, 
+                        const std::string& startDate, 
+                        const std::string& endDate) {
+    if(startDate.empty() && endDate.empty()) return true; // If both start and end dates are empty, return true
+    if(!isValidDateTime(dateTime)) return false; // If dateTime is not valid, return false
+
+    std::string adjustedStartDate = convertDateTime(startDate, false);
+    std::string adjustedEndDate = convertDateTime(endDate, true);
+
+    if(!startDate.empty() && adjustedStartDate.empty()) {
+        return false; // Invalid start date format
+    }
+    if(!endDate.empty() && adjustedEndDate.empty()) {
+        return false; // Invalid end date format
+    }
+    
+    if(startDate.empty()) return dateTime <= adjustedEndDate; // If start date is empty, check if dateTime is before or equal to endDate
+    if(endDate.empty()) return dateTime >= adjustedStartDate; // If end date is empty, check if dateTime is after or equal to startDate
+    return dateTime >= adjustedStartDate && dateTime <= adjustedEndDate; // Check if dateTime is within the range
+}
+
+//truy vấn giao dịch từ logstransaction
+void listTransactions(User* currentUser = nullptr,
+                      const std::string& username = "",
+                      const std::string& IDWallet = "",
+                      const std::string& startDate = "",
+                      const std::string& endDate = "",
+                      bool isAdmin = false) {
+    const std::string logFileName = "../logs/transaction.log";
+    if (!std::filesystem::exists(logFileName)) {
+        std::cout << "No transaction history found." << std::endl;
+        return;
+    }
+    std::ifstream logFile(logFileName);
+    if (!logFile.is_open()) {
+        std::cerr << "Error opening transaction log file." << std::endl;
+        return;
+    }
+
+    //Regex to match transaction lines
+    std::regex logPattern(R"(\[([^\s]+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+Transfer\s+From\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+To\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+Points transferred:\s*(\d+)\s+Status:\s*(\w+)(?:\s+Error=([^\n]*))?)");
+
+    // kiểm tra tham số
+    bool allTransactions = isAdmin && username == "All" && IDWallet.empty(); // Hiển thị tất cả giao dịch nếu là admin và không lọc theo username hoặc IDWallet
+    bool filterbyUsername = isAdmin && !username.empty() && username != "All"; // Lọc theo username nếu là admin và username không rỗng hoặc không phải "All"
+    bool filterbyIDWallet = isAdmin && !IDWallet.empty() || (currentUser && IDWallet == currentUser->wallet()); // Lọc theo IDWallet nếu là admin và IDWallet không rỗng, hoặc nếu là người dùng hiện tại và IDWallet trùng với IDWallet của người dùng
+    bool filterbyuser = !isAdmin && currentUser != nullptr; // Lọc theo người dùng nếu không phải là admin và currentUser không rỗng
+
+    if (!allTransactions && !filterbyUsername && !filterbyIDWallet && ! filterbyuser) {
+        cout <<"Invalid parameters: Provide currentUser or IDWallet for user mode, or username and IDWallet for admin mode." << std::endl;
+        logFile.close();
+        return;
+    }
+    
+    if(!startDate.empty() && convertDateTime(startDate, false).empty()) {
+        std::cerr << "Invalid start date format. Please use DD/MM/YYYY!" << std::endl;
+        logFile.close();
+        return;
+    }
+
+    if(!endDate.empty() && convertDateTime(endDate, true).empty()) {
+        std::cerr << "Invalid end date format. Please use DD/MM/YYYY!" << std::endl;
+        logFile.close();
+        return;
+    }
+
+    std::string line;
+    bool found = false;
+    std::cout << std::left;
+    std::cout /*<< std::setw(12) << "Transaction ID" */
+              << std::setw(20) << "DateTime" 
+              << std::setw(67) << "Sender Wallet ID" 
+              << std::setw(20) << "Sender Full Name" 
+              << std::setw(67) << "Receiver Wallet ID" 
+              << std::setw(20) << "Receiver Full Name" 
+              << std::setw(10) << "Points" 
+              << std::setw(10) << "Status"
+              << std::setw(50) << "Error Message" 
+              << std::endl;
+    std::cout << std::string(240, '-') << std::endl;
+    
+    while (std::getline(logFile, line)) {
+        std::smatch match;
+        if (regex_match(line, match, logPattern)) {
+            std::string transactionId = match[1].str();
+            std::string dateTime = match[2].str();
+            std::string senderWalletId = match[3].str();
+            std::string senderUserName = match[4].str();
+            std::string senderFullName = match[5].str();
+            std::string receiverWalletId = match[6].str();
+            std::string receiverUserName = match[7].str();
+            std::string receiverFullName = match[8].str();
+            int64_t pointsTransferred = std::stoll(match[9].str());
+            std::string status = match[10].str();
+            std::string errorMessage = match.size() > 9 ? match[11].str() : "";
+
+            // Kiểm tra điều kiện lọc
+            if(!isWithinTimeRange(dateTime, startDate, endDate)) {
+                continue; // Skip this transaction if it is not within the specified time range
+            }
+            bool matchCondition = false;
+            if (allTransactions) { 
+                matchCondition = true; // If all transactions are requested, match all conditions
+            } else if (filterbyuser && currentUser) {
+                matchCondition = (senderWalletId == currentUser->wallet() || receiverWalletId == currentUser->wallet());
+            } else if (filterbyUsername) {
+                // std::string senderUserName = match[4].str().substr(0, match[4].str().find(","));
+                // std::string receiverUserName = match[6].str().substr(0, match[6].str().find(","));
+                matchCondition = (senderUserName == username || receiverUserName == username);
+            }
+            else if (filterbyIDWallet) {
+                matchCondition = (senderWalletId == IDWallet || receiverWalletId == IDWallet);
+            }
+
+            if(matchCondition) {
+                found = true;
+                std::string shorttransactionId = transactionId.length() > 10 ? transactionId.substr(0, 10) + "..." : transactionId; // Truncate transaction ID to 12 characters
+                std::cout /*<< std::setw(20) << transactionId */
+                          << std::setw(20) << dateTime 
+                          << std::setw(67) << senderWalletId 
+                          << std::setw(20) << senderFullName 
+                          << std::setw(67) << receiverWalletId 
+                          << std::setw(20) << receiverFullName 
+                          << std::setw(10) << pointsTransferred 
+                          << std::setw(10) << status
+                          << std::setw(50) << errorMessage << std::endl;
+
+            }
+        }
+    }
+    logFile.close();
+    if (!found) {
+        std::cout << "No transactions found matching the criteria." << std::endl;
+    } else {
+        std::cout << "End of transaction history." << std::endl;
+    }
+}
+
 void eWallet(User *& currentUser) {
     while (true){
         int subChoice;
@@ -519,9 +711,36 @@ void eWallet(User *& currentUser) {
             cout << "An unknown error occurred." << endl;
         }
         } else if(subChoice==2){
-            cout << "transaction history comming soon!" << endl;
+            cout << "Are you sure you want to see All Transaction History? (Y/N) (or 'z' to return to E-Wallet Menu): ";
+            string confirm;
+            getline(cin, confirm);
+            if (confirm == "Z" || confirm == "z") {
+                cout << "Returning to E-Wallet Menu..." << endl;
+                continue; // Return to the eWallet menu
+            } else if (confirm != "Y" && confirm != "y") {
+                cout << "Transaction history viewing cancelled." << endl;
+                continue; // Cancel viewing transaction history
+            }
+            cout << "Transaction history for user: " << currentUser->accountName() << endl;
+            cout << "---------------------------------" << endl;
+            listTransactions(currentUser, "", "", "", "", false); // Call the function to list transactions for the current user
         } else if(subChoice==3){
-            cout << "transaction history by time comming soon!" << endl;
+             string startDate, endDate;
+            cout << "Input startdate (DD/MM/YYYY) (or 'z' to return menu):" << endl;
+            getline(cin, startDate);
+            if (startDate == "z" || startDate == "Z") {
+                std::cout << "Returning to menu..." << std::endl;
+                break; // Exit the loop to go back to the menu
+            }
+            cout << "Input enddate (DD/MM/YYYY) (or 'z' to return menu):" << endl;
+            getline(cin, endDate);
+            if (endDate == "z" || endDate == "Z") {
+                std::cout << "Returning to menu..." << std::endl;
+                break; // Exit the loop to go back to the menu
+            }
+            cout << "Transaction History by Time:" << endl;
+            cout << "--------------------" << endl;
+            listTransactions(currentUser, "", "", startDate, endDate, false);
         } else if(subChoice==4){
             cout << "Back to main menu" << endl;
             break; // Exit the loop to go back to the main menu
@@ -552,7 +771,6 @@ void UserLoginMenu(User *& currentUser) {
         }
     }
 }
-
 
 void userHomeMenu() {
     while (true){

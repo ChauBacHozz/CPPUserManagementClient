@@ -392,7 +392,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
  
     while (!stream.eof() ){
         stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
-        std::cout << dbUserName << std::endl;
+        //std::cout << dbUserName << std::endl;
         if (userName == dbUserName) {
             userfound = true; 
             break; 

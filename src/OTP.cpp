@@ -14,7 +14,7 @@ const int OTP_LENGTH = 6;
 const std::string SECRET_KEY_PREFIX = "SECURE_KEY_FOR_ACCOUNT_";
 const int OTP_VALIDITY_SECONDS = 60;
 const int MAX_OTP_ATTEMPTS = 3;
-const std::string LOG_FILE_NAME = "transaction_log.txt";
+const std::string SAVE_LOG_FILE_NAME = "transaction_log.txt";
 
 // ==== Các hàm tiện ích ====
 
@@ -58,7 +58,7 @@ bool verifyOTP(const std::string& enteredOTP, const std::string& secretKey, cons
 
 void logTransaction(int stt, const std::string& transactionID, const std::string& sourceAccount,
                     const std::string& receiveAccount, const std::string& status) {
-    std::ofstream outFile(LOG_FILE_NAME, std::ios_base::app);
+    std::ofstream outFile(SAVE_LOG_FILE_NAME, std::ios_base::app);
     if (outFile.is_open()) {
         auto now = std::chrono::system_clock::now();
         std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
@@ -70,7 +70,7 @@ void logTransaction(int stt, const std::string& transactionID, const std::string
                 << timeStr << " - " << status << std::endl;
         outFile.close();
     } else {
-        std::cerr << "Khong the mo file log: " << LOG_FILE_NAME << std::endl;
+        std::cerr << "Khong the mo file log: " << SAVE_LOG_FILE_NAME << std::endl;
     }
 }
 
@@ -125,7 +125,7 @@ void runTransactionSession() {
         }
 
         logTransaction(transactionCounter, transactionID, accountNumber, receiveAccount, logStatus);
-        std::cout << "Giao dich da duoc ghi vao file log: " << LOG_FILE_NAME << std::endl;
+        std::cout << "Giao dich da duoc ghi vao file log: " << SAVE_LOG_FILE_NAME << std::endl;
 
         std::cout << "Ban co muon thuc hien giao dich khac khong? (y/n): ";
         char continueChoice;
@@ -138,9 +138,3 @@ void runTransactionSession() {
     std::cout << "Chuong trinh ket thuc." << std::endl;
 }
 
-// ==== main gọi hàm điều khiển chính ====
-
-int main() {
-    runTransactionSession();
-    return 0;
-}

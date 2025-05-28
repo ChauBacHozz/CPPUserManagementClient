@@ -10,11 +10,11 @@
 #include <ctime>
 #include "transaction_utils.h"
 
-const int OTP_LENGTH = 6;
-const std::string SECRET_KEY_PREFIX = "SECURE_KEY_FOR_ACCOUNT_";
-const int OTP_VALIDITY_SECONDS = 60;
-const int MAX_OTP_ATTEMPTS = 3;
-const std::string SAVE_LOG_FILE_NAME = "transaction_log.txt";
+ const int OTP_LENGTH = 6;
+ const std::string SECRET_KEY_PREFIX = "SECURE_KEY_FOR_ACCOUNT_";
+ const int OTP_VALIDITY_SECONDS = 60;
+ const int MAX_OTP_ATTEMPTS = 3;
+ const std::string SAVE_LOG_FILE_NAME = "transaction_log.txt";
 
 // ==== Các hàm tiện ích ====
 

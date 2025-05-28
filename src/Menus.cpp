@@ -782,7 +782,7 @@ void eWallet(User *& currentUser) {
             cout << "Transaction history for user: " << currentUser->accountName() << endl;
             cout << "---------------------------------" << endl;
             listTransactions(currentUser, "", "", "", "", false); // Call the function to list transactions for the current user
-        } else if(subChoice==0){
+        } else if(subChoice==3){
              string startDate, endDate;
             cout << "Input startdate (DD/MM/YYYY) (or 'z' to return menu):" << endl;
             getline(cin, startDate);

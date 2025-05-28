@@ -22,39 +22,43 @@ using namespace std;
 
 
 void printAdminHomeMenu() {
-    cout << "ADMIN HOME MENU" << endl;
+    cout << "--- ADMIN HOME MENU ---" << endl;
     cout << "---------------------------------" << endl;
     cout << "1. User listing" << endl;
     cout << "2. User edit" << endl;
     cout << "3. Wallet management" << endl;
     cout << "4. Admin info editing" << endl;
-    cout << "0. Exit" << endl;
+    cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
 }
 
 void printUserEditMenu() {
-    cout << "USER EDITING MENU" << endl;
+    cout << "--- ADMIN EDITING MENU ---" << endl;
     cout << "---------------------------------" << endl;
     cout << "1. Add user" << endl;
     cout << "2. Add users from csv" << endl;
-    cout << "0. Exit" << endl;
+    cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
 }
 
 void printUserInfoFromDb(User *& currentUser) {
-    cout << "\n--- User Info ---\n";
+    cout << "\n--- USER INFO ---\n";
+    cout << "---------------------------------\n";
     cout << "Full Name: " << currentUser->fullName() << endl;
     cout << "User Name: " << currentUser->accountName() << endl;
+    cout << "--------------------------------\n" << endl;
 }
 
 void printchangeUserInfoMenu() {
     cout << "\n--- CHANGE USER INFO MENU ---\n" 
+         << "---------------------------------\n"
          << "1. Change Full Name\n" 
          << "2. Change Password\n" 
-         << "3. Back\n";
-    cout << "Enter your choice: ";
+         << "0. Back\n"
+         << "---------------------------------\n"
+         << "Enter your choice: ";
 }
 
 void printeWalletMenu() {
@@ -62,42 +66,40 @@ void printeWalletMenu() {
          << "1. Transfer Points\n" 
          << "2. Transaction History\n" 
          << "3. Transaction History by Time\n" 
-         << "4. Back\n";
-    cout << "Enter your choice: ";
+         << "0. Back\n"
+         << "---------------------------------\n"
+         << "Enter your choice: ";
 }
 
 void printUserLoginMenu() {
     cout << "\n--- USER LOGIN MENU ---\n" 
+         << "---------------------------------\n"
          << "1. Information\n" 
          << "2. E-Walelt\n" 
-         << "3. Back\n";
-    cout << "Enter your choice: ";
+         << "0. Back\n"
+         << "---------------------------------\n"
+         << "Enter your choice: ";
 }
 
 void printuserHomeMenu() {
     cout << "\n--- USER HOME MENU ---\n" 
+         << "---------------------------------\n"
          << "1. Login\n" 
          << "2. Register\n" 
-         << "3. Back\n";
-    cout << "Enter your choice: ";
+         << "0. Back\n"
+         << "---------------------------------\n"
+         << "Enter your choice: ";
 }
 
 void printmainMenu() {
     cout << "\n--- MAIN MENU ---\n" 
+         << "---------------------------------\n"
          << "1. User Home\n" 
          << "2. Admin Home\n" 
-         << "3. Exit\n";
-    cout << "Enter your choice: ";
+         << "0. Exit\n"
+         << "---------------------------------\n"
+         << "Enter your choice: ";
 }
-
-// std::string trim(const std::string& str) {
-//     size_t first = str.find_first_not_of(' \t\n\r');
-//     size_t last = str.find_last_not_of(' \t\n\r');
-//     if (first == std::string::npos || last == std::string::npos) {
-//         return ""; // No non-whitespace characters found
-//     }
-//     return str.substr(first, (last - first + 1));
-// }
 
 bool isUserExist(std::string userName) {
     // Check if the user exists in the database
@@ -187,12 +189,12 @@ User * enterUserInfo(){
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     cout << "User fullname: ";
-    cin.ignore();
+    //cin.ignore();
     getline(cin, fullName);
     cout << "User username: ";
-    cin >> userName;
+    getline (cin, userName);
     cout << "User password: ";
-    cin >> password;
+    getline (cin, password);
     cout << "User user-point: ";
     cin >> point;
 
@@ -201,19 +203,22 @@ User * enterUserInfo(){
     return user;    
 }
 
-User * enterUserInfoRegister(bool enterPoint = false){
+User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
     system("cls");
     string FullName;
     string userName;
-    string password;
-    string genPassword;
+    string Password;
+    //string genPassword;
+    string hashedPassword;
     string genSalt;
     string genWalletId;
+    int64_t userPoint = 0;
+    genSalt = generateSaltStr(12); // Generate a random salt for the user
+
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
     do {
     cout << "User FullName: ";
-    cin.ignore();
     getline(cin, FullName);
     FullName = trim(FullName);
     if(!isvalisfullName(FullName)) {
@@ -232,43 +237,96 @@ User * enterUserInfoRegister(bool enterPoint = false){
             break; // Exit the loop if the username is unique
         }  
     }
-    
-    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
 
-    int userPoint = 0;
-    if (enterPoint) {
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
+    
+    bool isGeneratedPassword = false; // Flag to indicate if the password is generated
+    if (isAdmin) {
+        Password = generateSaltStr();
+        hashedPassword = sha256(Password + genSalt);
+        isGeneratedPassword = true; // Set flag to indicate password is generated
+        cout << "Generated Password: " << Password << endl;
+        cout << "Please note down this password for login!" << endl;
+     if(hashedPassword.empty()) {
+        cout << "Error hashing password." << endl;
+        return nullptr;
+        }
+    } else {
+        cout << "User password (leave empty to generate random password, or 'z' to return to menu): ";
+        getline(cin, Password);
+        Password = trim(Password);
+        if (Password == "z" || Password == "Z") {
+            cout << "User creation cancelled." << endl;
+            cout << "Return to menu..." << endl;
+            return nullptr; // Return to menu if user enters 'z'
+        }
+        if (Password.empty()) {
+            // Generate a random password if the user leaves it empty or enters "z"
+            Password = generateSaltStr(12);
+            hashedPassword = sha256(Password + genSalt); 
+            isGeneratedPassword = true; // Set flag to indicate password is generated
+            cout << "Generated Password: " << Password << endl;
+            cout << "Please note down this password for login!" << endl;
+        } else {
+            // Hash the provided password
+            hashedPassword = sha256(Password + genSalt); 
+            }
+    }
+    if (hashedPassword.empty()) {
+                cout << "Error hashing password." << endl;
+                cout << "Return to menu..." << endl;
+                return nullptr; // Exit if password hashing fails
+            }
+    
+        if (isAdmin || enterPoint) {
         cout << "Enter user point: ";
         cin >> userPoint;
-
+        if (cin.fail() || userPoint < 0) {
+            cin.clear(); // Clear the error state
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+            cout << "Invalid point. Setting to 0" << endl;
+            userPoint = 0; // Exit if point is invalid
+        }
     }
     cout << "---------------------------" << endl;
-    genPassword = generateSaltStr(12);
-    std::string hashedPassword = sha256(genPassword + genSalt);
-    if(hashedPassword.empty()) {
-        cout << "Error hashing password." << endl;
-        return NULL;
+
+    genWalletId = sha256(Password + genSalt);
+    if (genWalletId.empty()) {
+        cout << "Error generating wallet ID." << endl;
+        cout << "Return to menu..." << endl;
+        return nullptr; // Exit if wallet ID generation fails
     }
-    genWalletId = sha256(genPassword + genSalt);
 
+    // xác nhận trước khi tạo user
+    string confirm;
+    cout << "---------------------------" << endl;
+    cout << "Comfirm user creation:" << endl;
+    cout << "Full Name: " << FullName << endl;
+    cout << "User Name: " << userName << endl;
+    cout << "User Password: " << Password << endl;
+    cout << "Are you sure to create this user? (Y/N, or 'z' to return Menu): ";
+    getline(cin, confirm);
+    confirm = trim(confirm);
+    if (confirm == "z" || confirm == "Z") {
+        cout << "User creation cancelled." << endl;
+        cout << "Return to menu..." << endl;
+        return nullptr; // Return to menu if user enters 'z'
+    } else if (confirm != "Y" && confirm != "y") {
+        cout << "User creation cancelled." << endl;
+        cout << "Return to menu..." << endl;
+        return nullptr; // Exit if user does not confirm
+    }
 
-
-    std::string out_char;
-    do
-    {
-        system("cls");
-        std::cout << "Create user success" << std::endl;
-        std::cout << "Generated Password: " << genPassword << std::endl;
-        std::cout << "Please note down this password for login!" << std::endl;
-        std::cout << "Enter '0' to escape: " << std::endl;
-        cin >> out_char;
-
-
-    } while (out_char != "0");
-    
-    User * user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
-    return user;    
+    // Create a new User object with the provided information
+User* user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
+if(!user) {
+    cout << "Error creating user object." << endl;
+    return nullptr; // Exit if user object creation fails
+}
+return user;
 }
 
+// Edit user of Admin
 bool UserEditMenu(Admin * currentAdmin) {
     int userEditMenuOption;
     do {
@@ -487,7 +545,7 @@ void changeuserinfo(std::string& filename, User *& currentUser) {
             else{
                 cout << "Password cannot be empty!" << endl;
             }
-        } else if(subChoice==3){
+        } else if(subChoice==0){
             cout << "Back to main menu" << endl;
             cout << "DEBUG: End of changeuserinfo" << endl;
             break; // Exit the loop to go back to the main menu
@@ -724,7 +782,7 @@ void eWallet(User *& currentUser) {
             cout << "Transaction history for user: " << currentUser->accountName() << endl;
             cout << "---------------------------------" << endl;
             listTransactions(currentUser, "", "", "", "", false); // Call the function to list transactions for the current user
-        } else if(subChoice==3){
+        } else if(subChoice==0){
              string startDate, endDate;
             cout << "Input startdate (DD/MM/YYYY) (or 'z' to return menu):" << endl;
             getline(cin, startDate);
@@ -741,7 +799,7 @@ void eWallet(User *& currentUser) {
             cout << "Transaction History by Time:" << endl;
             cout << "--------------------" << endl;
             listTransactions(currentUser, "", "", startDate, endDate, false);
-        } else if(subChoice==4){
+        } else if(subChoice==0){
             cout << "Back to main menu" << endl;
             break; // Exit the loop to go back to the main menu
         } else {
@@ -757,13 +815,13 @@ void UserLoginMenu(User *& currentUser) {
         printUserLoginMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
-        if(choice==1){
+        if(choice == 1){
            printUserInfoFromDb(currentUser);
            std::string filename = "../assets/users.parquet";
            changeuserinfo(filename, currentUser);
-        } else if(choice==2){
+        } else if(choice == 2){
             eWallet(currentUser);
-        } else if(choice==3){
+        } else if(choice == 0){
             cout << "Logging out..." << endl;
             break; // Exit the loop to log out
         } else {
@@ -781,22 +839,30 @@ void userHomeMenu() {
         cin.ignore(); // Ignore the newline character left in the input buffer
         shared_ptr<arrow::io::ReadableFile> infile;
 
-        if(choice==1){
+        if(choice == 1){
             User * currentUser = nullptr;
             loginUser(infile, currentUser);
-        } else if(choice==2){
+        } else if(choice == 2){
             // User * 
-            User * new_user = enterUserInfoRegister();
-            arrow::Status status = registerUser(new_user);
+            User * new_user = enterUserInfoRegister(false, false);
+            if (new_user == nullptr) {
+                continue; // Return to the user home menu
+            }
+            std::string filename = "../assets/users.parquet";
+            std::string fullName = new_user->fullName();
+            std::string accountName = new_user->accountName();  
+            std::string password = new_user->password();
+            std::string salt = new_user->salt();
+            int point = new_user->point();
+            std::string wallet = new_user->wallet();
+            arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
             if(!status.ok()) {
                 cout << "Error registering user: " << status.ToString() << endl;
                 return;
-            }else {
-                cout << "User registered successfully!" << endl;
             }
             UserLoginMenu(new_user);
-            cout << "User registered successfully!" << endl;
-        } else if(choice==3){
+            delete new_user; // Clean up the dynamically allocated user object
+        } else if(choice == 0){
             cout << "Back to Main Menu..." << endl;
             break; // Exit the loop to go back to the main menu
         } else {
@@ -812,11 +878,11 @@ void mainMenu() {
         printmainMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
-        if(choice==1){
+        if(choice == 1){
             userHomeMenu();
-        } else if(choice==2){
+        } else if(choice == 2){
             AdminLoginMenu();
-        } else if(choice==3){
+        } else if(choice == 0){
             cout << "Goodbye!..." << endl;
             exit(0); // Exit the loop to log out
         } else {

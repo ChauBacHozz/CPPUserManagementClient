@@ -39,4 +39,6 @@ add_custom_command(TARGET main POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/lib/libarrow.dll"
         "${CMAKE_SOURCE_DIR}/lib/libparquet.dll"
+        "${CMAKE_SOURCE_DIR}/lib/libcrypto-3-x64.dll"
+        "${CMAKE_SOURCE_DIR}/lib/libssl-3-x64.dll"
         $<TARGET_FILE_DIR:main>)

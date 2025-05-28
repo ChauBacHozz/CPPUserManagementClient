@@ -31,7 +31,7 @@ public:
     void setPoint(int point);
 
     std::string salt() ;
-    void setSalt( std::string &fullName);
+    void setSalt( std::string &salt);
 
     std::string wallet() ;
     void setWallet( std::string &wallet);

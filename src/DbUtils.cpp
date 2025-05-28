@@ -465,7 +465,7 @@ std::string generateTxId() {
 arrow::Status registerUser(User *& user) {
     std::string filename = "../assets/users.parquet";
     // Auto set user point = 0 if register
-    user->setPoint(0);
+    //user->setPoint(0);
     std::string fullName = user->fullName();
     std::string accountName = user->accountName();
     std::string password = user->password();
@@ -480,6 +480,12 @@ arrow::Status registerUser(User *& user) {
                                                             salt,
                                                             point,
                                                             wallet);
+    
+    if (!resultRegisterUser.ok()) {
+        std::cerr << "Error registering user: " << resultRegisterUser.ToString() << std::endl;
+        return resultRegisterUser;
+    } 
+    std::cout << "User registered successfully!" << std::endl;
     return arrow::Status::OK();
 }
 
@@ -869,43 +875,6 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
         }
         
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Bỏ qua ký tự newline còn lại trong buffer
-        
-        // // Kiểm tra xem filename có đang bị khóa không
-        // std::string lockfiname = filename + ".lock"; // Tên file khóa
-        // auto startTime = std::chrono::steady_clock::now(); // Lưu thời gian bắt đầu
-        // auto lastMessageTime = startTime; // Lưu thời gian của thông báo cuối cùng
-        // while (std::filesystem::exists(lockfiname)) { // kiểm tra xem file khóa có tồn tại không
-        //     auto currentTime = std::chrono::steady_clock::now(); // Lấy thời gian hiện tại
-        //     if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastMessageTime).count() > 5) { // Kiểm tra nếu đã 5 giây kể từ thông báo cuối cùng
-        //         // Nếu đã 5 giây kể từ thông báo cuối cùng, in ra thông báo
-        //         std::cout << "File is currently locked. Please wait..." << std::endl; // In thông báo
-        //         // Cập nhật thời gian của thông báo cuối cùng
-        //         lastMessageTime = currentTime;
-        //     }
-        //     // Kiểm tra thời gian chờ
-        //     if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count() > 30) { // Nếu đã quá 30 giây kể từ khi bắt đầu chờ
-        //         // In thông báo lỗi và thoát
-        //         std::cerr << "Timeout: Please try agian!" << std::endl;
-        //         return arrow::Status::IOError("Timeout: Please try agian!"); // In thông báo lỗi
-        //     }
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Chờ một chút trước khi kiểm tra lại
-        // }
-        
-        // // Khóa file để tránh xung đột
-        // std:: cout <<"System is processing your request, please wait..." << std::endl; // In thông báo
-        // std::ofstream lockFile(lockfiname); // Tạo file khóa
-        // if (!lockFile.is_open()) { // Kiểm tra xem file khóa có mở thành công không
-        //     // Nếu không mở được file khóa, in thông báo lỗi và thoát
-        //     logTransaction(currentUser->wallet(), 
-        //                     currentUser->accountName(), 
-        //                     currentUser->fullName(), 
-        //                     receiverWalletId, 
-        //                     receiverUserName, 
-        //                     receiverFullName, 
-        //                     transferPoint, false);
-        //                     std::filesystem::remove(lockfiname);
-        //     std::cerr << "Error: Timeout please try agian!" << std::endl; // In thông báo lỗi
-        // }
 
         // Kiểm tra xem người dùng có đủ điểm để chuyển không
         if (transferPoint > currentUser->point()) {
@@ -913,9 +882,6 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             continue;
         }
 
-        // int64_t receiverPoints = 0;
-        // int receiverRow;
-        // std::string receiverUserName;    
         std::string errorMessage;
         if(!checkWalletIdAndFullName(filename, 
                                      receiverWalletId, 
@@ -971,21 +937,6 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             return arrow::Status::Invalid("Invalid OTP");
         }
 
-        // // Thực hiện giao dịch với file tạm
-        // std::string tempFilename = "../assets/temp_users.parquet";
-
-        // //sao chép file gốc sang file tạm
-        // std::ifstream src(filename, std::ios::binary);
-        // std::ofstream dst(tempFilename, std::ios::binary);
-        // if (!src.is_open() || !dst.is_open()) {
-        //     std::cerr << "Error: Filed to cpy database for transaction!" << std::endl;
-        //     logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), receiverWalletId, receiverUserName, receiverFullName, transferPoint, false);
-        //     return arrow::Status::IOError("Failed to open source or destination file");
-        // }
-        // dst << src.rdbuf();
-        // src.close();
-        // dst.close();
-
         // câp nhật điểm cho người gửi
         std::map<std::string, std::string> senderUpdatedValues = {
             {"Points", std::to_string(currentUser->point() - transferPoint)}
@@ -1022,19 +973,6 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             // std::remove(tempFilename.c_str());
             return arrow::Status::IOError("Failed to update receiver's points");
         }
-
-        // // Ghi lại trên database
-        // if(std::rename(tempFilename.c_str(), filename.c_str()) != 0) {
-        //     std::cerr << "Error: Failed to rename temp file to original file!" << std::endl;
-        //     logTransaction(currentUser->wallet(), 
-        //                     currentUser->accountName(), 
-        //                     currentUser->fullName(),   
-        //                     receiverWalletId, 
-        //                     receiverUserName, 
-        //                     receiverFullName, 
-        //                     transferPoint, false);
-        //     return arrow::Status::IOError("Failed to rename temp file to original file");
-        // }
 
         //cập nhật điểm trong đối tượng currentUser
         currentUser->setPoint(currentUser->point() - transferPoint);

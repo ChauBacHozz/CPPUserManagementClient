@@ -32,7 +32,15 @@ arrow::Status updateUserInfo(const std::string& filename,
 arrow::Status registerUser(User *& user);
 std::string trim(const std::string& str);
 arrow::Status transferPoint(const std::string& filename, User* currentUser);
-
+void logTransaction(const std::string& senderWalletId,
+                    const std::string& senderuserName,
+                    const std::string& senderFullName, 
+                    const std::string& receiverWalletId,
+                    const std::string& receiveruserName,
+                    const std::string& receiverFullName, 
+                    int64_t transferPoint,
+                    bool isSuccess,
+                    const std::string& errorMessage = "");
 
 
 #endif

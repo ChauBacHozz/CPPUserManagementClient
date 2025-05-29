@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <chrono>
 #include <arrow/api.h>
+#include <transaction_utils.h>
 
 arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arrow::Table>& existing_table) {
     // Mở file parquet
@@ -367,8 +368,20 @@ void logFailedLogin(std::string& userName) {
 
 void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser){
     std::string userName;
-    std::cout << "User name: ";
-    std::cin >> userName;
+    std::cout << "User name (or 'z' to return Menu): ";
+    std::getline (std::cin, userName);
+    userName = trim(userName);
+    if (userName == "z" || userName == "Z") {
+        std::cout << "Returning to Menu..." << std::endl;
+        currentUser = nullptr;
+        return;
+    }
+
+    if (isUserExist(userName) == false) {
+        std::cout << "Login failed! (User invalid)" << std::endl;
+        currentUser = nullptr;
+        return;
+    }
     
     try {
         PARQUET_ASSIGN_OR_THROW(
@@ -407,8 +420,19 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
     int failedLoginCount = 0;
     while (failedLoginCount < 3) {
         std::string userpassword;
-        std::cout << "Password: ";
-        std::cin >> userpassword;
+        std::cout << "Password (or 'z' to return Menu): ";
+        std::getline (std::cin, userpassword);
+        userpassword = trim(userpassword);
+        if (userpassword == "z" || userpassword == "Z") {
+            std::cout << "Returning to Menu..." << std::endl;
+            currentUser = nullptr;
+            return;
+        }
+        if (isvalidPassword(userpassword) == false) {
+            std::cout << "Login failed! (Password invalid)" << std::endl;
+            currentUser = nullptr;
+            return;
+        }
         std::string hashedPassword = sha256(userpassword + dbSalt);
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;
@@ -429,21 +453,21 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
 }
 
 //Hàm sinh mã OTP
-std::string generateOTP(const std::string& WalletId = "default") {
-    // Sử dụng WalletId để tạo mã OTP duy nhất
-    auto ns = std::chrono::system_clock::now().time_since_epoch().count();
-    std::string input = std::to_string(ns) + WalletId;
-    std::string otp;
-    size_t hash = 0;
-    for (char c : input) {
-        hash = (hash * 31 + c) % 1000000; // Giới hạn OTP trong khoảng 6 chữ số
-    }
-    for(int i = 0; i < 6; ++i) {
-        otp += std::to_string((hash + i) % 10); // Chuyển đổi thành chuỗi\
-        hash /= 10;
-    }
-    return otp;
-}
+// std::string generateOTP(const std::string& WalletId = "default") {
+//     // Sử dụng WalletId để tạo mã OTP duy nhất
+//     auto ns = std::chrono::system_clock::now().time_since_epoch().count();
+//     std::string input = std::to_string(ns) + WalletId;
+//     std::string otp;
+//     size_t hash = 0;
+//     for (char c : input) {
+//         hash = (hash * 31 + c) % 1000000; // Giới hạn OTP trong khoảng 6 chữ số
+//     }
+//     for(int i = 0; i < 6; ++i) {
+//         otp += std::to_string((hash + i) % 10); // Chuyển đổi thành chuỗi\
+//         hash /= 10;
+//     }
+//     return otp;
+// }
 
 //Hàm lấy thời gian hiện tại
 std::string getCurruntTime() {
@@ -693,7 +717,7 @@ void logTransaction(const std::string& senderWalletId,
                     const std::string& receiverFullName, 
                     int64_t transferPoint,
                     bool isSuccess,
-                    const std::string& errorMessage = "") {
+                    const std::string& errorMessage) {
     const std::string logFilename = "../logs/transaction.log"; // Đường dẫn đến file log 
     // Kiểm tra kích thước file log, nếu lớn hơn 100MB thì backup và tạo file mới
     std::filesystem::path logPath(logFilename); // Chuyển đổi đường dẫn thành đối tượng std::filesystem::path
@@ -847,16 +871,24 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
     int64_t transferPoint = 0;
     
     while (true) {
-        std::cout << "Enter receiver's wallet ID: ";
+        std::cout << "Enter receiver's wallet ID (or 'z' to return Menu): ";
         std::getline(std::cin, receiverWalletId);
         receiverWalletId = trim(receiverWalletId);
+        if (receiverWalletId == "z" || receiverWalletId == "Z") {
+            std::cout << "Returning to Menu." << std::endl;
+            return arrow::Status::OK();
+        }
         if (receiverWalletId.empty()) {
             std::cout << "Invalid wallet ID. Please try again." << std::endl;
             continue;
         }
-        std::cout << "Enter receiver's full name: ";
+        std::cout << "Enter receiver's full name (or 'z' to return Menu): ";
         std::getline(std::cin, receiverFullName);
         receiverFullName = trim(receiverFullName);
+        if (receiverFullName == "z" || receiverFullName == "Z") {
+            std::cout << "Returning to Menu." << std::endl;
+            return arrow::Status::OK();
+        }
         if (receiverFullName.empty()) {
             std::cout << "Invalid full name. Please try again." << std::endl;
             continue;
@@ -917,7 +949,7 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
         std::string otp, userOtp;
 
         while (otpAttempts < maxOtpAttempts) {
-            otp = generateOTP();
+            otp = generateOTP(currentUser->wallet(), currentUser->accountName());
             std::cout << "Your OTP is: " << otp << std::endl;
             std::cout << "Enter the OTP: ";
             getline(std::cin, userOtp);
@@ -931,7 +963,7 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             }
         }
 
-        if(!otpVerified) {
+        if(!verifyOTP(userOtp, currentUser->wallet(), currentUser->accountName())) {
             std::cout << "You entered incorrect OTP 3 time. Transaction cancelled." << std::endl;
             logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), receiverWalletId, receiverUserName, receiverFullName, transferPoint, false);
             return arrow::Status::Invalid("Invalid OTP");

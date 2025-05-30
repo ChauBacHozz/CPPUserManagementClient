@@ -45,16 +45,6 @@ void printUserEditMenu() {
     cout << "Enter your option: ";
 }
 
-void printUserEditMenu() {
-    cout << "--- ADMIN E MENU ---" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "1. Add user" << endl;
-    cout << "2. Add users from csv" << endl;
-    cout << "0. Back" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "Enter your option: ";
-}
-
 void printUserInfoFromDb(User *& currentUser) {
     cout << "\n--- USER INFO ---\n";
     cout << "---------------------------------\n";

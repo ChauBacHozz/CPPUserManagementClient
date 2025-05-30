@@ -33,6 +33,8 @@ target_link_libraries(main
     arrow parquet
     libssl
     libcrypto
+    rdkafka
+    rdkafkacpp
 )
 
 add_custom_command(TARGET main POST_BUILD
@@ -41,4 +43,6 @@ add_custom_command(TARGET main POST_BUILD
         "${CMAKE_SOURCE_DIR}/lib/libparquet.dll"
         "${CMAKE_SOURCE_DIR}/lib/libcrypto-3-x64.dll"
         "${CMAKE_SOURCE_DIR}/lib/libssl-3-x64.dll"
+        "${CMAKE_SOURCE_DIR}/lib/librdkafka.dll"
+        "${CMAKE_SOURCE_DIR}/lib/librdkafkacpp.dll"
         $<TARGET_FILE_DIR:main>)

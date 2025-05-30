@@ -36,5 +36,8 @@ public:
     std::string wallet() ;
     void setWallet( std::string &wallet);
 
+    void sendMessageToKafka(std::string message, std::string topic);
+    void receiveMessageFromKafka(std::string topic);
+
 };
 

@@ -13,6 +13,7 @@
 #include <map>
 
 
+arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arrow::Table>& existing_table);
 arrow::Status AppendUserParquetRow(std::string& filename, 
                                     std::string& FullName, 
                                     std::string& UserName, 

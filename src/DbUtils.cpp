@@ -367,9 +367,17 @@ void logFailedLogin(std::string& userName) {
 }
 
 void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser){
+    //system("clear");
+    if (currentUser != nullptr) {
+        std::cout << "You are already logged in as: " << currentUser << std::endl;
+        UserLoginMenu(currentUser);
+        return;
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
     std::string userName;
     std::cout << "User name (or 'z' to return Menu): ";
     std::getline (std::cin, userName);
+    std::cin.clear(); // Clear any error state
     userName = trim(userName);
     if (userName == "z" || userName == "Z") {
         std::cout << "Returning to Menu..." << std::endl;

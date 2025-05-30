@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <librdkafka/rdkafka.h>
 
 class User
 {
@@ -10,10 +11,21 @@ private:
     std::string Salt;
     std::string Wallet;
     int Point = 0;
+    // Kafa client init;
+    std::string broker = "100.116.29.42:9092"; 
+    rd_kafka_conf_t* producer_conf;
+    rd_kafka_conf_t* consumer_conf;
+    std::string group_id = "consumer_group";
+    rd_kafka_t* producer;
+    rd_kafka_t* consumer;
+    
+    
 public:
     User();
     User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
     ~User();
+
+    void initKafkaClient();
 
 
     std::string fullName() ;

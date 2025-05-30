@@ -14,7 +14,7 @@ void printTestKafKaMenu() {
 }
 void menu() {
     User user1;
-
+    
     cout << "1. Send message" << endl;
     cout << "2. Receive message" << endl;
     cout << "Enter your choice: ";
@@ -39,7 +39,7 @@ int main () {
     //     mainMenu();
     // }
     menu();    
-    
+
 
 
 

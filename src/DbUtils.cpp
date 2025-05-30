@@ -384,9 +384,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
     }
     
     try {
-        PARQUET_ASSIGN_OR_THROW(
-           infile,
-            arrow::io::ReadableFile::Open("../assets/users.parquet"));
+        PARQUET_ASSIGN_OR_THROW (infile, arrow::io::ReadableFile::Open("../assets/users.parquet"));
     } catch (const arrow::Status& status) {
         std::cerr << "Error opening file: " << status.ToString() << std::endl;
         currentUser = nullptr;
@@ -416,6 +414,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         currentUser = nullptr;
         return;
     }
+    std::cout << "User found: " << dbUserName << std::endl;
 
     int failedLoginCount = 0;
     while (failedLoginCount < 3) {
@@ -434,6 +433,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         //     return;
         // }
         std::string hashedPassword = sha256(userpassword + dbSalt);
+        //std::cout << "Password: " << hashedPassword << std::endl;
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;
             currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);

@@ -9,14 +9,43 @@
 #include "Menus.h"
 using namespace std;
 
+void printTestKafKaMenu() {
+
+}
+void menu() {
+    User user1;
+    
+    cout << "1. Send message" << endl;
+    cout << "2. Receive message" << endl;
+    cout << "Enter your choice: ";
+    int choice;
+    cin >> choice;
+    if (choice == 1)  {
+        string topic = "test";
+        string message = "Test from producer";
+        while (true)
+        {
+            getline(cin, message);
+            user1.sendMessageToKafka(message, topic);
+            // cin.ignore();
+
+        }
+        
+        
+    } else {
+        string topic = "test";
+        user1.receiveMessageFromKafka(topic);
+
+    }
+}
 
 int main () {
-    while (true)
-    {
-        system("cls");
-        mainMenu();
-    }
-    
+    // while (true)
+    // {
+    //     system("cls");
+    //     mainMenu();
+    // }
+    menu();    
 
 
 

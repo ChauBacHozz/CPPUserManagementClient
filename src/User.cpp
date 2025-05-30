@@ -4,17 +4,19 @@
 #include <librdkafka/rdkafka.h>
 
 void User::initKafkaClient() {
-    std::string brokers = "100.116.29.42:9092";
     char errstr[512];
 
     this->producer_conf = rd_kafka_conf_new();
     
     // Init config cho producer
-    if(rd_kafka_conf_set(this->producer_conf, "bootstrap.servers", brokers.c_str(), errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+    if(rd_kafka_conf_set(this->producer_conf, "bootstrap.servers", this->broker.c_str(), errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
         std::cerr << "Error setting brokers: " << errstr << std::endl;
     }
     
     this->consumer_conf = rd_kafka_conf_new();
+    if(rd_kafka_conf_set(this->consumer_conf, "bootstrap.servers", this->broker.c_str(), errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+        std::cerr << "Error setting brokers: " << errstr << std::endl;
+    }
     // Init config cho consumer
     if (rd_kafka_conf_set(this->consumer_conf, "group.id", this->group_id.c_str(), errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
         std::cerr << "Error setting group.id: " << errstr << std::endl;
@@ -111,8 +113,8 @@ void User::sendMessageToKafka(std::string message, std::string topic) {
         std::cout << "Produced message: " << message << std::endl;
     }
 
-    rd_kafka_flush(this->producer, 5000);
-    rd_kafka_destroy(this->producer);
+    rd_kafka_flush(this->producer, 1000);
+    // rd_kafka_destroy(this->producer);
 
 };
 

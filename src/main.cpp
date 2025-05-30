@@ -21,9 +21,16 @@ void menu() {
     int choice;
     cin >> choice;
     if (choice == 1)  {
-        string message = "Test from producer";
         string topic = "test";
-        user1.sendMessageToKafka(message, topic);
+        string message = "Test from producer";
+        while (true)
+        {
+            getline(cin, message);
+            user1.sendMessageToKafka(message, topic);
+            // cin.ignore();
+
+        }
+        
         
     } else {
         string topic = "test";

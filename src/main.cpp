@@ -40,12 +40,12 @@ void menu() {
 }
 
 int main () {
-    // while (true)
-    // {
-    //     system("cls");
-    //     mainMenu();
-    // }
-    menu();    
+    while (true)
+    {
+        system("cls");
+        mainMenu();
+    }
+    //menu();    
 
 
 

@@ -214,7 +214,7 @@ User * enterUserInfo(){
 }
 
 User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
-    system("cls");
+    system("cls"); // Clear the console screen
     string FullName;
     string userName;
     string Password;
@@ -1101,8 +1101,13 @@ void UserLoginMenu(User *& currentUser) {
         int choice;
         cout << "\nUser: " << currentUser->accountName() << endl;
         printUserLoginMenu();
-        cin >> choice;
-        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(!(cin >> choice)) {
+            cin.clear(); // Clear the error state
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+            cout << "Invalid choice. Please try again." << endl;
+            continue; // Skip to the next iteration of the loop
+        }
+        
         if(choice == 1){
            printUserInfoFromDb(currentUser);
            std::string filename = "../assets/users.parquet";
@@ -1122,16 +1127,22 @@ void UserLoginMenu(User *& currentUser) {
 
 void userHomeMenu() {
     while (true){
-        // system("cls");
+        system("cls");
         int choice;
         printuserHomeMenu();
-        cin >> choice;
-        cin.ignore(); // Ignore the newline character left in the input buffer
+        if(!(cin >> choice)) {
+            cin.clear(); // Clear the error state
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+            cout << "Invalid choice. Please try again." << endl;
+            continue; // Skip to the next iteration of the loop
+        }
+        
         shared_ptr<arrow::io::ReadableFile> infile; //
 
         if(choice == 1){
             User * currentUser = nullptr;
             loginUser(infile, currentUser);
+            
         } else if(choice == 2){
             // User * 
             User * new_user = enterUserInfoRegister(false, false);
@@ -1166,8 +1177,14 @@ void mainMenu() {
         system("cls");
         int choice;
         printmainMenu();
-        cin >> choice;
+        if(!(cin >> choice)) {
+            cin.clear(); // Clear the error state
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+            cout << "Invalid choice. Please try again." << endl;
+            continue; // Skip to the next iteration of the loop
+        }
         cin.ignore(); // Ignore the newline character left in the input buffer
+        
         if(choice == 1){
             userHomeMenu();
         } else if(choice == 2){

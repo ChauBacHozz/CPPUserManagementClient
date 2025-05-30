@@ -428,11 +428,11 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
             currentUser = nullptr;
             return;
         }
-        if (isvalidPassword(userpassword) == false) {
-            std::cout << "Login failed! (Password invalid)" << std::endl;
-            currentUser = nullptr;
-            return;
-        }
+        // if (isvalidPassword(userpassword) == false) {
+        //     std::cout << "Login failed! (Password invalid)" << std::endl;
+        //     currentUser = nullptr;
+        //     return;
+        // }
         std::string hashedPassword = sha256(userpassword + dbSalt);
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;

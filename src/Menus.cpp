@@ -25,21 +25,21 @@ using namespace std;
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
     cout << "---------------------------------" << endl;
-    cout << "1. User listing" << endl;
-    cout << "2. User edit" << endl;
-    cout << "3. Wallet management" << endl;
-    cout << "4. Admin info editing" << endl;
+    cout << "1. User Listing" << endl;
+    cout << "2. Manage User" << endl;
+    cout << "3. Wallet Management" << endl;
+    cout << "4. Admin Info Editing" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
-    cout << "Enter your option: ";
+    cout << "Enter Your Option: ";
 }
 
 void printUserEditMenu() {
-    cout << "--- ADMIN USER EDIT MENU ---" << endl;
+    cout << "--- ADMIN MANAGE USER MENU ---" << endl;
     cout << "---------------------------------" << endl;
-    cout << "1. Add user" << endl;
-    cout << "2. Add users from csv" << endl;
-    cout << "3. Edit user" << endl;
+    cout << "1. Add User" << endl;
+    cout << "2. Add Users From CSV" << endl;
+    cout << "3. Edit User Info" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
@@ -302,6 +302,7 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
         if (isAdmin || enterPoint) {
         cout << "Enter user point: ";
         cin >> userPoint;
+        cin.ignore();
         if (cin.fail() || userPoint < 0) {
             cin.clear(); // Clear the error state
             cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
@@ -355,22 +356,45 @@ bool UserEditMenu(Admin * currentAdmin) {
         printUserEditMenu();
         cin >> userEditMenuOption;
 
-    } while (userEditMenuOption < 0 || userEditMenuOption>2);
+    } while (userEditMenuOption < 0 || userEditMenuOption>4);
     switch (userEditMenuOption)
     {
         case 0:
             return true;
         case 1: {
-            cout << "Add user" << endl; 
-            /* code */
+            // cout << "Add user" << endl; 
+            // /* code */
             string saveParquetFileName = "../assets/users.parquet";
 
-            User * user = enterUserInfoRegister(true);
+            // std::set<std::string> existingUsernames;
+            // std::shared_ptr<arrow::io::ReadableFile> infile;
+            // try {
+            // PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(saveParquetFileName));
+            // std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::Open(infile);
+            // //parquet::StreamReader stream(reader.get());
+            // std::string dbFullName, dbUserName, dbHashedPassword, dbSalt, dbWalletId;
+            // int64_t dbUserPoint;
+            // while (!stream.eof()) {
+            // stream >> dbFullName >> dbUserName >> dbHashedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
+            // existingUsernames.insert(dbUserName);
+            // }
+            // } catch (const arrow::Status& status) {
+            // std::cerr << "Error reading file to check usernames: " << status.ToString() << std::endl;
+            // std::cout << "Cannot proceed with user creation." << std::endl;
+            // std::cin.get();
+            // break;
+            // }
+
+            cin.clear(); // Clear the input buffer
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore any leftover input
+            User * user = enterUserInfoRegister(true, true); // Pass true for isAdmin and enterPoint
             if (user == NULL)
             {
                 cout << "Enter user info failed" << endl;
+                cin.get(); // Wait for user input before continuing
                 break;
             }
+
             std::string fullName = user->fullName();
             std::string accountName = user->accountName();
             std::string password = user->password();
@@ -385,18 +409,106 @@ bool UserEditMenu(Admin * currentAdmin) {
                                                                     salt,
                                                                     point,
                                                                     wallet);
-            break;
+            if (!resultRegisterUser.ok()) {
+                std::cerr << "Error registering user: " << resultRegisterUser.ToString() << std::endl;
+                cout << "User registration failed. Please try again." << endl;
+                delete user; // Clean up the user object
+                cin.get(); // Wait for user input before continuing
+                break; // Exit the case if registration fails
+            }
             
+            std::cout << "User registered successfully!" << std::endl;
+            delete user; // Clean up the user object
+            cout << "Press Enter to continue..." << std::endl;
+            cin.get(); // Wait for user input before continuing
+            
+        break;
         }
 
         case 2: {
-            cout << "Add user from csv" << endl; 
-            // Nhap vao thong tin cua user muon tao qua cua so CLI
-            std::string csvFileName = "../assets/user_info.csv";
-            saveUserToDbFromCSV(csvFileName);
+            std::cout << "DEBUG: Entering case 2 - Add Users From CSV" << std::endl;
+            std::cout << "Add users from CSV" << std::endl;
+            std::cout << "DEBUG: Exiting case 2" << std::endl;
+            // string csvFileName;
+            // cout << "Enter CSV file name (or 'z' to return to Menu): ";
+            // cin.ignore();
+            // getline(cin, csvFileName);
+            // csvFileName = trim(csvFileName);
+            // if (csvFileName == "z" || csvFileName == "Z") {
+            //     cout << "Returning to Menu..." << endl;
+            //     break;
+            // }
+            // arrow::Status result = addUsersFromCSV(csvFileName);
+            // if (!result.ok()) {
+            //     std::cerr << "Error adding users from CSV: " << result.ToString() << std::endl;
+            // } else {
+            //     std::cout << "Users added successfully!" << std::endl;
+            // }
+            // cin.get(); // Wait for user input before continuing
+            break;
+        }
 
+        case 3: {
+                string filename = "../assets/users.parquet";
+                string userName;
+                cout << "Enter user name for edit (or 'z' to return Menu): ";
+                cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+                getline (cin, userName);
+                userName = trim(userName);
+                if (userName == "z" || userName == "Z") {
+                    std::cout << "Returning to Menu..." << std::endl;
+                    string currentUser = nullptr;
+                    break;
+                }
+                std::shared_ptr<arrow::io::ReadableFile> infile;
+                try {
+                    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
+                } catch (const arrow::Status& status) {
+                    std::cerr << "Error opening file: " << status.ToString() << std::endl;
+                    cout << "Returning to Menu..." << endl;
+                    std::cin.get(); // Wait for user input before continuing
+                    break;        
+                }
 
-           
+                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+                //parquet::StreamReader stream(reader.get());
+
+                std::string dbFullName;
+                std::string dbUserName;
+                std::string dbSalt;
+                std::string dbWalletId;
+                std::string dbhasdedPassword;
+                int64_t dbUserPoint;
+                bool userfound = false;
+                User * currentUser = nullptr;
+ 
+                while (!stream.eof() ){
+                    stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
+                    //std::cout << dbUserName << std::endl;
+                    if (userName == dbUserName) {
+                        userfound = true; 
+                        currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
+                        cout << "DEBUG: User found: " << currentUser->accountName() << endl;
+                        break; 
+                    }
+                }
+                if (!userfound) {
+                    std::cout << "User " << userName <<" not found! (User invalid)" << std::endl;
+                    cout << "Please check the user name and try again." << endl;
+                    cin.get(); // Wait for user input before continuing
+                    break;
+                }
+                if (!currentUser) {
+                    cout << "User " << currentUser << " not found!" << endl;
+                    cout << "Please check the user name and try again." << endl;
+                    cin.get();
+                    break; // Skip to the next iteration of the loop
+                }
+                cout << "DEBUG: Current user found: " << currentUser->accountName() << ", calling changeuserinfo" << endl;
+                changeuserinfo(filename, currentUser, true);
+                cout << "DEBUG: Returned from changeuserinfo" << endl;
+                cout << "User info changed successfully!" << endl;
+                cin.get(); // Wait for user input before continuing
             break;
         }
         default:
@@ -428,9 +540,7 @@ bool loginAdmin(Admin *& currentAdmin) {
 void AdminLoginMenu() {
     Admin * currentAdmin = new Admin();
     // shared_ptr<arrow::io::ReadableFile> infile;
-    
-
-    
+      
     if (loginAdmin(currentAdmin)) {
         bool adminLoginMenuExit = false;
         while (!adminLoginMenuExit)
@@ -491,7 +601,8 @@ void AdminLoginMenu() {
             }
     
             case 3:
-                cout << "Wallet management" << endl; 
+                system("cls");
+                cout << "Admin management" << endl; 
                 /* code */
                 break;
             case 4:
@@ -709,7 +820,7 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
             }
             currentUser->setPoint(newpoints); // Update the points in the User object
             map<string, string> updated_values={
-                {"Point", std::to_string(currentUser->point())}
+                {"Points", std::to_string(currentUser->point())}
             };
             arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
             if (!status.ok()) {
@@ -1016,7 +1127,7 @@ void userHomeMenu() {
         printuserHomeMenu();
         cin >> choice;
         cin.ignore(); // Ignore the newline character left in the input buffer
-        shared_ptr<arrow::io::ReadableFile> infile;
+        shared_ptr<arrow::io::ReadableFile> infile; //
 
         if(choice == 1){
             User * currentUser = nullptr;

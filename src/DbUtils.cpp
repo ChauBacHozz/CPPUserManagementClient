@@ -1,5 +1,6 @@
 #include "DbUtils.h"
 #include "Encrypt.h"
+#include "JsonUtils.h"
 #include <arrow/api.h>
 #include <arrow/io/api.h>
 #include "arrow/io/file.h"
@@ -858,7 +859,7 @@ bool checkWalletIdAndFullName(const std::string& filename,
 }
 
 // Hàm chuyển điểm
-arrow::Status transferPoint(const std::string& filename, User* currentUser) {
+arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
     std::cout << "Starting transferPoint with file: " << filename << std::endl;
     // Kiểm tra đầu vào
     if(!currentUser) {
@@ -977,6 +978,7 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
             return arrow::Status::Invalid("Invalid OTP");
         }
 
+        
         // câp nhật điểm cho người gửi
         std::map<std::string, std::string> senderUpdatedValues = {
             {"Points", std::to_string(currentUser->point() - transferPoint)}
@@ -993,6 +995,22 @@ arrow::Status transferPoint(const std::string& filename, User* currentUser) {
                             transferPoint, false);
             return arrow::Status::IOError("Failed to update sender's points");
         }
+
+        // Create json message for producer
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&now_c), "%d-%m-%Y %H:%M:%S");
+        std::map<std::string, std::string> transfer_msg = {
+            {"Sender", currentUser->wallet()},
+            {"Time", ss.str()},
+            {"Point", std::to_string(transferPoint)}
+        };
+
+        // Convert map to json
+        std::string transfer_msg_json = map_to_json(transfer_msg);
+        // Send from producer to broker
+        currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
 
         // câp nhật điểm cho người nhận
         User receiver(receiverFullName, receiverUserName, "", receiverPoints, "", receiverWalletId);

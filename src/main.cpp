@@ -41,11 +41,11 @@ void menu() {
 }
 
 int main () {
-    Client * currentClient;
+    Client * currentClient = new Client();
     while (true)
     {
         system("cls");
-        mainMenu();
+        mainMenu(currentClient);
     }
 
 

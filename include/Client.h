@@ -8,6 +8,6 @@ private:
     /* data */
 public:
     Client(/* args */);
-    ~Client();
+    virtual ~Client();
 };
 

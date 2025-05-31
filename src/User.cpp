@@ -111,7 +111,7 @@ void User::activateConsumerThread() {
     }
 
     for (int i = 0; i < metadata->topic_cnt; i++) {
-        if (std::string(metadata->topics[i].topic) == topic) {
+        if (std::string(metadata->topics[i].topic) == this->Wallet) {
             topicExists = true;
             break;
         }

@@ -21,7 +21,9 @@ private:
     rd_kafka_t* producer;
     rd_kafka_t* consumer;
     // Kafka consumer thread
-    std::thread 
+    std::thread consumer_thread;
+    bool consumer_thread_running = false;
+    
     
 public:
     User();
@@ -29,6 +31,9 @@ public:
     ~User();
 
     void initKafkaClient();
+    void activateConsumerThread();
+    bool check_consumer_thread_running();
+    
 
 
     std::string fullName() ;

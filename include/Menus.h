@@ -8,9 +8,9 @@
 #define MENUS_H
 
 void FirstLoginMenu();
-void AdminLoginMenu();
+void AdminLoginMenu(Client *& currentClient);
 void UserLoginMenu(User *& currentUser);
-void mainMenu();
+void mainMenu(Client *& client);
 bool isUserExist(std::string userName);
 bool isvalisfullName(std::string fullname);
 bool isvalidPassword(std::string password);

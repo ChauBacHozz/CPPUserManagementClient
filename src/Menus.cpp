@@ -538,8 +538,10 @@ bool loginAdmin(Admin *& currentAdmin) {
     // return false;
 }
 
-void AdminLoginMenu() {
-    Admin * currentAdmin = new Admin();
+void AdminLoginMenu(Client *& currentClient) {
+    currentClient = new Admin();
+    Admin * currentAdmin = dynamic_cast<Admin*>(currentClient);
+
     // shared_ptr<arrow::io::ReadableFile> infile;
       
     if (loginAdmin(currentAdmin)) {
@@ -622,6 +624,7 @@ void AdminLoginMenu() {
         cout  << "Login failed as admin" << endl;
 
     }
+    delete currentAdmin;
 
 }
 
@@ -1098,6 +1101,9 @@ void eWallet(User *& currentUser) {
 }
 
 void UserLoginMenu(User *& currentUser) {
+    if (!currentUser->check_consumer_thread_running()) {
+        currentUser->activateConsumerThread();
+    }
     while (true){
         int choice;
         cout << "\nUser: " << currentUser->accountName() << endl;
@@ -1126,7 +1132,7 @@ void UserLoginMenu(User *& currentUser) {
     }
 }
 
-void userHomeMenu() {
+void userHomeMenu(Client *& currentClient) {
     while (true){
         system("cls");
         int choice;
@@ -1146,24 +1152,25 @@ void userHomeMenu() {
             
         } else if(choice == 2){
             // User * 
-            User * new_user = enterUserInfoRegister(false, false);
-            if (new_user == nullptr) {
+            currentClient = enterUserInfoRegister(false, false);
+            User * currentUser = dynamic_cast<User*>(currentClient);
+            if (currentClient == nullptr) {
                 continue; // Return to the user home menu
             }
             std::string filename = "../assets/users.parquet";
-            std::string fullName = new_user->fullName();
-            std::string accountName = new_user->accountName();  
-            std::string password = new_user->password();
-            std::string salt = new_user->salt();
-            int point = new_user->point();
-            std::string wallet = new_user->wallet();
+            std::string fullName = currentUser->fullName();
+            std::string accountName = currentUser->accountName();  
+            std::string password = currentUser->password();
+            std::string salt = currentUser->salt();
+            int point = currentUser->point();
+            std::string wallet = currentUser->wallet();
             arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
             if(!status.ok()) {
                 cout << "Error registering user: " << status.ToString() << endl;
                 return;
             }
-            UserLoginMenu(new_user);
-            delete new_user; // Clean up the dynamically allocated user object
+            UserLoginMenu(currentUser);
+            delete currentUser; // Clean up the dynamically allocated user object
         } else if(choice == 0){
             cout << "Back to Main Menu..." << endl;
             break; // Exit the loop to go back to the main menu
@@ -1173,7 +1180,7 @@ void userHomeMenu() {
     }
 }
 
-void mainMenu() {
+void mainMenu(Client *& currentClient) {
     while (true){
         system("cls");
         int choice;
@@ -1187,9 +1194,9 @@ void mainMenu() {
         cin.ignore(); // Ignore the newline character left in the input buffer
         
         if(choice == 1){
-            userHomeMenu();
+            userHomeMenu(currentClient);
         } else if(choice == 2){
-            AdminLoginMenu();
+            AdminLoginMenu(currentClient);
         } else if(choice == 0){
             cout << "Goodbye!..." << endl;
             exit(0); // Exit the loop to log out

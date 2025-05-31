@@ -4,9 +4,9 @@
 #include <string>
 #include "User.h"
 #include <DbUtils.h>
+#include "Client.h"
 
-
-class Admin
+class Admin : public Client
 {
 private:
     std::string AccountName = "admin";

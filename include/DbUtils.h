@@ -32,7 +32,7 @@ arrow::Status updateUserInfo(const std::string& filename,
                             bool allow_point_update = false);
 arrow::Status registerUser(User *& user);
 std::string trim(const std::string& str);
-arrow::Status transferPoint(const std::string& filename, User* currentUser);
+arrow::Status transferPoint(const std::string& filename, User *& currentUser);
 void logTransaction(const std::string& senderWalletId,
                     const std::string& senderuserName,
                     const std::string& senderFullName, 

@@ -100,7 +100,35 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
 
 }
 
+void User::activateConsumerThread() {
+    // Kiểm tra topic có tồn tại trên broker không, nếu không có thì gửi một message với topic để tạo topic
+    bool topicExists = false;
+    const struct rd_kafka_metadata* metadata = nullptr;
+    rd_kafka_resp_err_t err = rd_kafka_metadata(this->consumer, 1, nullptr, &metadata, 5000);
+    if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        std::cerr << "Failed to fetch metadata: " << rd_kafka_err2str(err) << std::endl;
+        return;
+    }
 
+    for (int i = 0; i < metadata->topic_cnt; i++) {
+        if (std::string(metadata->topics[i].topic) == this->Wallet) {
+            topicExists = true;
+            break;
+        }
+    }
+    rd_kafka_metadata_destroy(metadata);
+
+    if (!topicExists) {
+        std::string temp_msg = "_temp_msg";
+        sendMessageToKafka(temp_msg, this->Wallet);
+    }
+    this->consumer_thread_running = true;
+    this->consumer_thread = std::thread(&User::receiveMessageFromKafka, this, this->Wallet);
+}
+
+bool User::check_consumer_thread_running() {
+    return this->consumer_thread_running;
+}
 
 std::string User::salt()  {
     return this->Salt;
@@ -166,4 +194,9 @@ void User::sendMessageToKafka(std::string message, std::string topic) {
 
 User::~User()
 {
+    if (this->consumer_thread.joinable())
+    {
+        this->consumer_thread.join();
+    }
+    
 }

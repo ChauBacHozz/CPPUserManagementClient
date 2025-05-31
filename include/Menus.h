@@ -14,7 +14,7 @@ void mainMenu(Client *& client);
 bool isUserExist(std::string userName);
 bool isvalisfullName(std::string fullname);
 bool isvalidPassword(std::string password);
-void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin);
+void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::string, std::string>& pending_updates, bool isAdmin = false);
 void printchangeUserInfoMenu(bool isAdmin);
 
 

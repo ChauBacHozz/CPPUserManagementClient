@@ -1,6 +1,18 @@
 #ifndef TRANSACTION_UTILS_H
 #define TRANSACTION_UTILS_H
-
+#include "User.h"
+#include "DbUtils.h"
+#include "encrypt.h"
+#include <iostream>
+#include <random>
+#include <iomanip>
+#include <admin.h>
+#include <chrono>
+#include <fstream>
+#include <ctime>
+#include <sstream>
+#include <cmath>
+#include <algorithm>
 #include <string>
 
 // ==== Hằng số sử dụng trong OTP/Giao dịch ====
@@ -28,6 +40,8 @@ std::string generateOTP(const std::string& secretKey, const std::string& transac
  * Kiểm tra mã OTP người dùng nhập có hợp lệ hay không.
  */
 bool verifyOTP(const std::string& enteredOTP, const std::string& secretKey, const std::string& transactionID);
+
+bool verifyOTPForUser(User* currentUser);
 
 /**
  * Ghi log cho giao dịch vào file.

@@ -1,7 +1,42 @@
 #include "User.h"
 #include <string>
 #include <iostream>
+#include <thread>
 #include <librdkafka/rdkafka.h>
+
+void User::receiveMessageFromKafka(std::string topic) {
+    // Đăng ký topic
+    rd_kafka_poll_set_consumer(this->consumer);
+    rd_kafka_topic_partition_list_t *topics = rd_kafka_topic_partition_list_new(1);
+    rd_kafka_topic_partition_list_add(topics, topic.c_str(), -1);   
+    if (rd_kafka_subscribe(this->consumer, topics) != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        std::cerr << "Failed to subscribe to topic\n";
+        rd_kafka_destroy(this->consumer);
+        return;
+    }
+
+    std::cout << "Consumer started, waiting for message ..." << std::endl;
+    while(true) {
+        rd_kafka_message_t* msg = rd_kafka_consumer_poll(this->consumer, 1000);
+        if (!msg) continue;
+
+        if (msg->err) {
+            if (msg->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
+                // Đã đến cuối partition
+            } else {
+                std::cerr << "Consumer error: " << rd_kafka_message_errstr(msg) << std::endl;
+            }
+        } else {
+            std::string payload((char*)msg->payload, msg->len);
+            std::cout << "Received message: " << payload << std::endl;
+        }
+        rd_kafka_message_destroy(msg);
+    }
+    
+    // rd_kafka_consumer_close(this->consumer);
+    // rd_kafka_destroy(this->consumer);
+
+}
 
 void User::initKafkaClient() {
     char errstr[512];
@@ -42,6 +77,10 @@ void User::initKafkaClient() {
 
 User::User(){
     initKafkaClient();
+    // std::string topic = "test";
+    // std::thread t_receive(&User::receiveMessageFromKafka, this, topic);
+    // t_receive.join();
+
 }
 
 User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
@@ -53,6 +92,11 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
     this->Point = PointArg;
     this->Salt = SaltArg;
     this->Wallet = WalletArg;
+
+    initKafkaClient();
+    // std::string topic = "test";
+    // std::thread t_receive(&User::receiveMessageFromKafka, this, topic);
+    // t_receive.join();
 
 }
 
@@ -118,39 +162,7 @@ void User::sendMessageToKafka(std::string message, std::string topic) {
 
 };
 
-void User::receiveMessageFromKafka(std::string topic) {
-    // Đăng ký topic
-    rd_kafka_poll_set_consumer(this->consumer);
-    rd_kafka_topic_partition_list_t *topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(topics, topic.c_str(), -1);   
-    if (rd_kafka_subscribe(this->consumer, topics) != RD_KAFKA_RESP_ERR_NO_ERROR) {
-        std::cerr << "Failed to subscribe to topic\n";
-        rd_kafka_destroy(this->consumer);
-        return;
-    }
 
-    std::cout << "Consumer started, waiting for message ..." << std::endl;
-    while(true) {
-        rd_kafka_message_t* msg = rd_kafka_consumer_poll(this->consumer, 1000);
-        if (!msg) continue;
-
-        if (msg->err) {
-            if (msg->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
-                // Đã đến cuối partition
-            } else {
-                std::cerr << "Consumer error: " << rd_kafka_message_errstr(msg) << std::endl;
-            }
-        } else {
-            std::string payload((char*)msg->payload, msg->len);
-            std::cout << "Received message: " << payload << std::endl;
-        }
-        rd_kafka_message_destroy(msg);
-    }
-    
-    // rd_kafka_consumer_close(this->consumer);
-    // rd_kafka_destroy(this->consumer);
-
-}
 
 User::~User()
 {

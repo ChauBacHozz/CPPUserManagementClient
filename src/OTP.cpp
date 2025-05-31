@@ -9,6 +9,10 @@
 #include <fstream>
 #include <ctime>
 #include "transaction_utils.h"
+#include "User.h"
+#include "DbUtils.h"
+#include "encrypt.h"
+#include "admin.h"
 
 //  const int OTP_LENGTH = 6;
 //  const std::string SECRET_KEY_PREFIX = "SECURE_KEY_FOR_ACCOUNT_";
@@ -55,6 +59,38 @@ bool verifyOTP(const std::string& enteredOTP, const std::string& secretKey, cons
     ss << std::setw(OTP_LENGTH) << std::setfill('0') << (hashedData % static_cast<size_t>(pow(10, OTP_LENGTH)));
     return (enteredOTP == ss.str());
 }
+
+bool verifyOTPForUser(User* currentUser) {
+    std::string secretKey = currentUser->salt();
+    std::string transactionID = generateTransactionID();
+
+    if(secretKey.empty() || transactionID.empty()) {
+        std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
+        return false; // Exit if secret key or transaction ID is empty
+    }
+
+    std::string otp = generateOTP(secretKey, transactionID);
+    std::cout << "OTP for user " << currentUser->accountName() << " is: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+
+    int attempts = 0;
+    const int maxAttempts = 3;
+    while (attempts < maxAttempts) {
+        std::string enteredOTP;
+        std::cout << "Enter OTP to verify (Attempt " << (attempts + 1) << "/" << maxAttempts << "): ";
+        std::cin >> enteredOTP;
+
+        if (verifyOTP(enteredOTP, secretKey, transactionID)) {
+            std::cout << "OTP verification successful!" << std::endl;
+            return true; // OTP verified successfully
+        } else {
+            attempts++;
+            std::cout << "Incorrect OTP. Please try again." << std::endl;
+        }
+    }
+    std::cout << "You have entered incorrect OTP " << maxAttempts << " times. Verification failed." << std::endl;
+    return false; // OTP verification failed after max attempts
+}
+
 
 // void logTransaction(int stt, const std::string& transactionID, const std::string& sourceAccount,
 //                     const std::string& receiveAccount, const std::string& status) {

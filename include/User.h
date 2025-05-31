@@ -1,8 +1,10 @@
 #pragma once
 #include <string>
 #include <librdkafka/rdkafka.h>
+#include <thread>
+#include "Client.h"
 
-class User
+class User : public Client
 {
 private:
     std::string FullName;
@@ -18,7 +20,8 @@ private:
     std::string group_id = "consumer_group";
     rd_kafka_t* producer;
     rd_kafka_t* consumer;
-    
+    // Kafka consumer thread
+    std::thread 
     
 public:
     User();

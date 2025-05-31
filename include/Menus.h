@@ -1,6 +1,8 @@
 #pragma once
+#include "Client.h"
 #include "User.h"
 #include "Admin.h"
+
 #include <iostream>
 #ifndef MENUS_H
 #define MENUS_H

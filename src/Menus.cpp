@@ -1,4 +1,5 @@
 #include "Menus.h"
+#include "Client.h"
 #include "Admin.h"
 #include "User.h"
 #include "DbUtils.h"

@@ -34,18 +34,19 @@ void menu() {
         
     } else {
         string topic = "test";
-        user1.receiveMessageFromKafka(topic);
-
+        while (true) {
+            cout << "Test thread" << endl;
+        }
     }
 }
 
 int main () {
+    Client * currentClient;
     while (true)
     {
         system("cls");
         mainMenu();
     }
-    //menu();    
 
 
 

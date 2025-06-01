@@ -1048,3 +1048,271 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
     return arrow::Status::OK();
 }
     
+    
+    
+
+//Thêm các chương trình về quản lý admin
+// --- Định nghĩa cấu trúc Admin ---
+// Cấu trúc để lưu trữ thông tin của một Admin
+struct Admin {
+    std::string FullName;
+    std::string UserName;
+    std::string Password; 
+    std::string Salt;     
+    int64_t Points;       
+    std::string IDWallet;
+
+    
+    Admin(std::string fn, std::string un, std::string pw, std::string s, int64_t p, std::string idw)
+        : FullName(std::move(fn)), UserName(std::move(un)), Password(std::move(pw)), Salt(std::move(s)), Points(p), IDWallet(std::move(idw)) {}
+
+    // Hiển thị thông tin admin
+    void print() const {
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "Full Name: " << FullName << std::endl;
+        std::cout << "User Name: " << UserName << std::endl;
+        // For security, avoid printing raw password/salt in production
+        std::cout << "Hashed Password: " << Password << std::endl;
+        std::cout << "Salt: " << Salt << std::endl;
+        std::cout << "Points: " << Points << std::endl;
+        std::cout << "Wallet ID: " << IDWallet << std::endl;
+    }
+};
+
+
+// --- Hàm đọc thông tin Admin từ file Parquet ---
+arrow::Status getAdminsFromFile(const std::string& filename, std::vector<Admin>& admin_list) {
+    std::shared_ptr<arrow::Table> admin_table;
+    // Sử dụng hàm getTableFromFile đã có để đọc dữ liệu
+    arrow::Status status = getTableFromFile(filename, admin_table);
+    if (!status.ok()) {
+        std::cerr << "Error reading admin Parquet file: " << status.ToString() << std::endl;
+        return status;
+    }
+
+    // Kiểm tra xem bảng có rỗng không
+    if (admin_table->num_rows() == 0) {
+        std::cout << "File admin.parquet is empty or does not contain any rows." << std::endl;
+        return arrow::Status::OK();
+    }
+
+    // Lấy các cột theo tên. Đảm bảo tên cột khớp chính xác với schema của file Parquet.
+    // Nếu các cột không tồn tại, GetColumnByName sẽ trả về nullptr.
+    std::shared_ptr<arrow::ChunkedArray> FullNameColumn = admin_table->GetColumnByName("FullName");
+    std::shared_ptr<arrow::ChunkedArray> UserNameColumn = admin_table->GetColumnByName("UserName");
+    std::shared_ptr<arrow::ChunkedArray> PasswordColumn = admin_table->GetColumnByName("Password");
+    std::shared_ptr<arrow::ChunkedArray> SaltColumn = admin_table->GetColumnByName("Salt");
+    std::shared_ptr<arrow::ChunkedArray> PointsColumn = admin_table->GetColumnByName("Points");
+    std::shared_ptr<arrow::ChunkedArray> IDWalletColumn = admin_table->GetColumnByName("IDWallet");
+
+    // Kiểm tra xem tất cả các cột cần thiết có tồn tại không
+    if (!FullNameColumn || !UserNameColumn || !PasswordColumn || !SaltColumn || !PointsColumn || !IDWalletColumn) {
+        return arrow::Status::Invalid("Missing one or more required columns in admin.parquet (FullName, UserName, Password, Salt, Points, IDWallet).");
+    }
+
+    // Duyệt qua từng hàng và tạo đối tượng Admin
+    for (int64_t i = 0; i < admin_table->num_rows(); ++i) {
+        std::string fullName, userName, password, salt, idWallet;
+        int64_t points;
+
+             // FullName
+        auto fullname_scalar_result = FullNameColumn->GetScalar(i);
+        if (fullname_scalar_result.ok() && !fullname_scalar_result.ValueOrDie()->is_null()) {
+            fullName = fullname_scalar_result.ValueOrDie()->ToString();
+        } else {
+            fullName = ""; // Default or error handling for null/invalid
+            std::cerr << "Warning: FullName is null or invalid at row " << i << std::endl;
+        }
+
+        // UserName
+        auto username_scalar_result = UserNameColumn->GetScalar(i);
+        if (username_scalar_result.ok() && !username_scalar_result.ValueOrDie()->is_null()) {
+            userName = username_scalar_result.ValueOrDie()->ToString();
+        } else {
+            userName = "";
+            std::cerr << "Warning: UserName is null or invalid at row " << i << std::endl;
+        }
+
+        // Password (Hashed)
+        auto password_scalar_result = PasswordColumn->GetScalar(i);
+        if (password_scalar_result.ok() && !password_scalar_result.ValueOrDie()->is_null()) {
+            password = password_scalar_result.ValueOrDie()->ToString();
+        } else {
+            password = "";
+            std::cerr << "Warning: Password is null or invalid at row " << i << std::endl;
+        }
+
+        // Salt
+        auto salt_scalar_result = SaltColumn->GetScalar(i);
+        if (salt_scalar_result.ok() && !salt_scalar_result.ValueOrDie()->is_null()) {
+            salt = salt_scalar_result.ValueOrDie()->ToString();
+        } else {
+            salt = "";
+            std::cerr << "Warning: Salt is null or invalid at row " << i << std::endl;
+        }
+
+        // Points (int64_t)
+        auto points_scalar_result = PointsColumn->GetScalar(i);
+        if (points_scalar_result.ok() && !points_scalar_result.ValueOrDie()->is_null()) {
+            // Check if the scalar is indeed an Int64Scalar before casting
+            if (points_scalar_result.ValueOrDie()->type_id() == arrow::Type::INT64) {
+                points = std::static_pointer_cast<arrow::Int64Scalar>(points_scalar_result.ValueOrDie())->value;
+            } else {
+                std::cerr << "Warning: 'Points' column is not of type INT64 at row " << i << ". Defaulting to 0." << std::endl;
+                points = 0;
+            }
+        } else {
+            points = 0; // Default value for null or error
+            std::cerr << "Warning: Points is null or invalid at row " << i << ". Defaulting to 0." << std::endl;
+        }
+
+        // IDWallet
+        auto idwallet_scalar_result = IDWalletColumn->GetScalar(i);
+        if (idwallet_scalar_result.ok() && !idwallet_scalar_result.ValueOrDie()->is_null()) {
+            idWallet = idwallet_scalar_result.ValueOrDie()->ToString();
+        } else {
+            idWallet = "";
+            std::cerr << "Warning: IDWallet is null or invalid at row " << i << std::endl;
+        }
+        
+        // Tạo đối tượng Admin và thêm vào vector
+        admin_list.emplace_back(fullName, userName, password, salt, points, idWallet);
+    }
+
+    return arrow::Status::OK();
+}
+
+
+
+// --- Chương trình ghi lịch sử gán điểm cho user của admin
+void logUserCreation(const User* createdUser, const Admin* creatorAdmin) {
+    const std::string logFilename = "../logs/create_user_log.txt"; // Path to the log file
+
+    // Kiểm tra xem đường dẫn có tồn tại không
+    std::filesystem::path logPath(logFilename);
+    if (!std::filesystem::exists(logPath.parent_path())) {
+        std::filesystem::create_directories(logPath.parent_path());
+    }
+
+    std::ofstream logFile(logFilename, std::ios::app); // Open in append mode
+    if (logFile.is_open()) {
+        logFile << "[" << getCurruntTime() << "] ";
+        if (creatorAdmin) {
+            logFile << "Admin '" << creatorAdmin->UserName << "' (Wallet: " << creatorAdmin->IDWallet << ") ";
+        } else {
+            logFile << "Unknown Admin ";
+        }
+        logFile << "created new user: "
+                << "UserName='" << createdUser->UserName << "', "
+                << "FullName='" << createdUser->FullName << "', "
+                << "Points=" << createdUser->Points << ", "
+                << "IDWallet='" << createdUser->IDWallet << "'\n";
+        logFile.close();
+        std::cout << "Đã tạo lịch sử gán điểm đến file " << logFilename << std::endl;
+    } else {
+        std::cerr << "Không thể tạo file lịch sử gán điểm" << logFilename << std::endl;
+    }
+}
+
+// Cập nhật điểm của admin dựa trên tổng điểm của user từ log file
+arrow::Status updateAdminPointsFromLog(const std::string& admin_filepath, Admin* currentAdmin, const std::string& log_filepath) {
+    if (currentAdmin == nullptr) {
+        return arrow::Status::Invalid("Admin object is null. Cannot update admin points from log.");
+    }
+
+    std::ifstream logFile(log_filepath);
+    if (!logFile.is_open()) {
+        std::cerr << "Error: Could not open log file: " << log_filepath << std::endl;
+        return arrow::Status::IOError("Could not open log file.");
+    }
+
+    int64_t total_points_from_log = 0;
+    std::string line;
+    // Regex để tìm kiếm "Points=X"
+    // Regex này tìm kiếm chuỗi "Points=" theo sau là một hoặc nhiều chữ số (\d+)
+    std::regex points_regex("Points=(\\d+)");
+    std::smatch matches;
+
+    while (std::getline(logFile, line)) {
+        // Tìm kiếm regex trong mỗi dòng
+        if (std::regex_search(line, matches, points_regex)) {
+            // matches[0] là toàn bộ chuỗi khớp (ví dụ: "Points=123")
+            // matches[1] là nhóm con đầu tiên (ví dụ: "123")
+            if (matches.size() > 1) {
+                try {
+                    total_points_from_log += std::stoll(matches[1].str()); // Chuyển đổi chuỗi điểm thành int64_t và cộng dồn
+                } catch (const std::exception& e) {
+                    std::cerr << "Warning: Failed to parse points from log line: " << line << " - " << e.what() << std::endl;
+                }
+            }
+        }
+    }
+    logFile.close();
+
+    std::cout << "Total points accumulated from user creation log: " << total_points_from_log << std::endl;
+
+    // Cập nhật điểm của admin trong file admin.parquet
+    // Tạo một map chứa các giá trị cần cập nhật cho admin
+    std::map<std::string, std::string> admin_updates;
+    admin_updates["Points"] = std::to_string(total_points_from_log); // Gán tổng điểm từ log vào điểm của admin
+
+    std::cout << "Attempting to update Admin's points in file to " << total_points_from_log << std::endl;
+    
+    // Ép kiểu Admin* sang User* để sử dụng hàm updateUserInfo
+    // Điều này an toàn nếu Admin và User có cùng cấu trúc dữ liệu và updateUserInfo chỉ truy cập các trường chung.
+    User* temp_admin_user_ptr = reinterpret_cast<User*>(currentAdmin);
+
+    // Gọi updateUserInfo để ghi điểm mới vào file admin.parquet
+    // updateUserInfo sẽ tự động đọc file admin.parquet, cập nhật điểm, và ghi lại.
+    arrow::Status update_status = updateUserInfo(admin_filepath, temp_admin_user_ptr, admin_updates, true); // allow_point_update = true
+
+    if (update_status.ok()) {
+        currentAdmin->Points = total_points_from_log; // Cập nhật điểm của admin trong bộ nhớ
+        std::cout << "Admin's points in memory and file synchronized to " << total_points_from_log << std::endl;
+        logTransaction(currentAdmin->IDWallet, currentAdmin->UserName, currentAdmin->FullName,
+                       "", "", "", total_points_from_log, true, "Admin points synchronized with user creation log.");
+    } else {
+        std::cerr << "Error updating Admin's points from log: " << update_status.ToString() << std::endl;
+        logTransaction(currentAdmin->IDWallet, currentAdmin->UserName, currentAdmin->FullName,
+                       "", "", "", total_points_from_log, false, "Failed to synchronize Admin points with user creation log.");
+    }
+
+    return update_status;
+}
+
+
+// --- Hàm tính tổng điểm của các user
+template <typename T>
+int64_t calculateTotalPoints(const std::vector<T>& entity_list) {
+    int64_t total_points = 0;
+    for (const auto& entity : entity_list) {
+        total_points += entity.Points;
+    }
+    return total_points;
+}
+
+
+// --- Hàm so sánh tổng điểm của User và điểm của Admin ---
+// Admin được giả định chỉ có một entry duy nhất trong danh sách.
+void compareUserAndAdminPoints(const std::vector<User>& user_list, const std::vector<Admin>& admin_list) {
+    int64_t total_user_points = calculateTotalPoints(user_list);
+    int64_t admin_point = 0;
+
+    // Lấy điểm của admin duy nhất (nếu có)
+    if (!admin_list.empty()) {
+        admin_point = admin_list[0].Points; // Giả định admin_list chỉ có một admin
+    } else {
+        std::cerr << "Warning: Danh sách admin trống, coi như điểm ví tổng là 0." << std::endl;
+    }
+
+    std::cout << "\n--- Kiểm tra tổng điểm ví ---" << std::endl;
+    std::cout << "Tổng điểm của users: " << total_user_points << std::endl;
+    std::cout << "Điểm ví tổng: " << admin_point << std::endl;
+
+    if (total_user_points == admin_point) {
+        std::cout << "Điểm ví tổng bằng tổng điểm của các users." << std::endl;
+    } else {
+        std::cout << "Điểm ví tổng khác tổng điểm của các users." << std::endl;
+    }
+}
+

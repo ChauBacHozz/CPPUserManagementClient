@@ -3,24 +3,25 @@
 #include <curl/curl.h>
 #include "JsonUtils.h"
 #include <map>
+#include <iostream>
+#include "json.hpp"
+using json = nlohmann::json;
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
 
-loginUser(std::string& user_name, std::string& password) {
+std::string sendAPI(json send_data) {
     CURL* curl = curl_easy_init();
+    std::string result = "";
     if (curl) {
         std::string readBuffer;
 
         curl_easy_setopt(curl, CURLOPT_URL, "http://100.116.29.42:8080/login");
 
-        std::map send_data = {
-            {"username", user_name},
-            {"password", password}
-        };
-        std::string jsonData = map_to_json(send_data);
+
+        std::string jsonData = send_data.dump();
         
         struct curl_slist* headers = nullptr;
         headers = curl_slist_append(headers, "Content-Type: application/json");
@@ -35,9 +36,32 @@ loginUser(std::string& user_name, std::string& password) {
         if (res != CURLE_OK)
             std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << "\n";
         else
-            std::cout << "Response: " << readBuffer << "\n";
-
+            // std::cout << "Response: " << readBuffer << "\n";
+            result = readBuffer;
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
+
+    return result;
+}
+
+std::string loginUserAPI(std::string& user_name, std::string& password) {
+    std::string purpose = "USERLOGIN";
+    json user_login_info = {
+        {"purpose", purpose},
+        {"username", user_name},
+        {"password", password}
+    };
+    std::string api_result = sendAPI(user_login_info);
+    return api_result;
+}
+
+std::string editUserAPI(json user_info, json updated_values) {
+    std::string purpose = "USEREDIT";
+    json user_edit_info;
+    user_edit_info["purpose"] = purpose;
+    user_edit_info["userinfo"] = user_info;
+    user_edit_info["updatedvalues"] = updated_values;
+    std::string api_result = sendAPI(user_edit_info);
+    return api_result;
 }

@@ -1,4 +1,5 @@
 #include "Menus.h"
+#include "JsonUtils.h"
 #include "Client.h"
 #include "Admin.h"
 #include "User.h"
@@ -13,15 +14,17 @@
 #include "arrow/table.h"
 #include <openssl/sha.h>
 #include "DbUtils.h"
+#include "Backend.h"
 #include <encrypt.h>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
 #include <filesystem>
 #include <regex>
+#include "json.hpp"
 #include <transaction_utils.h>
 using namespace std;
-
+using json = nlohmann::json;
 
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
@@ -628,219 +631,234 @@ void AdminLoginMenu(Client *& currentClient) {
 
 }
 
-void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = false) {
-    
-    if(!currentUser) {
+json convertUserInfo2Json(User * currentUser) {
+    json user_info_json;
+    user_info_json["fullname"] = currentUser->fullName();
+    user_info_json["username"] = currentUser->accountName();
+    user_info_json["password"] = currentUser->password();
+    user_info_json["wallet"] = currentUser->wallet();
+    user_info_json["point"] = currentUser->point();
+    user_info_json["salt"] = currentUser->salt();
+    return user_info_json;
+}
+
+void changeuserinfo(std::string& filename, User*& currentUser, bool isAdmin = false) {
+    if (!currentUser) {
         std::cerr << "Error: Current user is null!" << std::endl;
         return;
     }
-  
-    //cout << "DEBUG: Entering changeuserinfo function" << endl;
-    while (true){
+
+    while (true) {
         printchangeUserInfoMenu(isAdmin);
-        //cout << "Debug: Entering changeuserinfo function" << endl;
         int subChoice;
-        //cin >> subChoice;
-        //cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
         if (!(cin >> subChoice)) {
-            cin.clear(); // Clear the error state
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cout << "Invalid choice. Please try again." << endl;
-            continue; // Skip to the next iteration of the loop
+            continue;
         }
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
-        if(subChoice==1){
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (subChoice == 1) {
             string newFullName;
             cout << "Enter new full Name (or 'z' to return to Menu): ";
             getline(cin, newFullName);
             newFullName = trim(newFullName);
             if (newFullName == "z" || newFullName == "Z") {
                 cout << "Returning to menu..." << endl;
-                continue; // Exit the loop to go back to the home menu
+                continue;
             }
-            // Validate the new full name
-            if(!isvalisfullName(newFullName)) {
+            if (!isvalisfullName(newFullName)) {
                 cout << "Invalid full name. Please try again." << endl;
-                continue; // Skip to the next iteration of the loop
+                continue;
             }
-            if(newFullName.empty()){
+            if (newFullName.empty()) {
                 cout << "Error: Full name cannot be empty!" << std::endl;
                 continue;
             }
-            
-            //Xử lý OTP
-            if(!isAdmin) {
-            string secretKey = currentUser->salt(); // Use the user's wallet as the secret key
-            string transactionID = generateTransactionID(); // Use the user's account name as the transaction ID
-            auto now = std::chrono::system_clock::now();
-            long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
-            long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
-            if(secretKey.empty() || transactionID.empty()) {
-                std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
-                return; // Exit if secret key or transaction ID is empty
-            }
-            // Generate and verify OTP
-            cout << "DEBUG: Generating OTP for user: " << currentUser->accountName() << std::endl;
-            string otp = generateOTP(secretKey, transactionID);
-            cout << "DEBUG: OTP generated: " << otp << std::endl;
-            cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
-            cout << "Please enter the OTP for confirmation!" << std::endl;
-            int otpAttempts = 0;
-            const int maxOtpAttempts = 3;
-            bool otpVerified = false;
-            string userOtp;
-            while (otpAttempts < maxOtpAttempts) {
-                std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
-                getline(std::cin, userOtp);
-                userOtp = trim(userOtp);
-                now = std::chrono::system_clock::now();
-                long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
-                long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
-                if (verifyOTP(userOtp, secretKey, transactionID)) {
-                    otpVerified = true;
-                    break;
-                } else {
-                    otpAttempts++;
-                    if (otpAttempts == maxOtpAttempts) {
-                        std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
-                        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
-                        //return arrow::Status::~Status("You entered incorrect OTP 3 times. User info change cancelled!"); // Exit if OTP verification fails
-                        continue;
+
+            if (!isAdmin) {
+                string secretKey = currentUser->salt();
+                string transactionID = generateTransactionID();
+                auto now = std::chrono::system_clock::now();
+                long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
+
+                if (secretKey.empty() || transactionID.empty()) {
+                    std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
+                    return;
+                }
+
+                cout << "DEBUG: Generating OTP for user: " << currentUser->accountName() << std::endl;
+                string otp = generateOTP(secretKey, transactionID);
+                cout << "DEBUG: OTP generated: " << otp << std::endl;
+                cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+                cout << "Please enter the OTP for confirmation!" << std::endl;
+
+                int otpAttempts = 0;
+                const int maxOtpAttempts = 3;
+                bool otpVerified = false;
+                string userOtp;
+
+                while (otpAttempts < maxOtpAttempts) {
+                    std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
+                    getline(std::cin, userOtp);
+                    userOtp = trim(userOtp);
+
+                    now = std::chrono::system_clock::now();
+                    long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                    long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
+
+                    if (verifyOTP(userOtp, secretKey, transactionID)) {
+                        otpVerified = true;
+                        break;
+                    } else {
+                        otpAttempts++;
+                        if (otpAttempts == maxOtpAttempts) {
+                            std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
+                            logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
+                            continue;
+                        }
+                        if (currentTimeSeconds > initialTimeStep) {
+                            otp = generateOTP(secretKey, transactionID);
+                            cout << "OTP has expired. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+                        }
+                        std::cout << "Invalid OTP. Please try again." << std::endl;
                     }
-                if(currentTimeSeconds > initialTimeStep) {
-                    otp = generateOTP(secretKey, transactionID); // Regenerate OTP if current time step has changed
-                    cout << "OTP has expried. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
                 }
             }
-            std::cout << "Invalid OTP. Please try again." << std::endl;
-            }
-        }
-        
-        currentUser->setFullName(newFullName); // Update the full name in the User object
-            std::map<std::string, std::string> updated_values={
-                {"Fullname", currentUser->fullName()}
-        };
 
-        arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
-            if (!status.ok()) {
-                cout << "Error updating user info: " << status.ToString() << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user Full Name");
-                continue;
-            }
-        cout << "Full name changed successfully!" << endl;
-        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
-        } else if(subChoice==2){
+            currentUser->setFullName(newFullName);
+            json user_info_json = convertUserInfo2Json(currentUser);
+            json updated_values;
+            updated_values["Fullname"] = currentUser->fullName();
+            editUserAPI(user_info_json, updated_values);
+
+
+            // arrow::Status status = updateUserInfo(filename, currentUser, updated_values);
+            // if (!status.ok()) {
+            //     cout << "Error updating user info: " << status.ToString() << endl;
+            //     logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user Full Name");
+            //     continue;
+            // }
+
+            // cout << "Full name changed successfully!" << endl;
+            // logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
+
+        } else if (subChoice == 2) {
             string newPassword;
             cout << "Enter new password (or 'z' to return to Menu): ";
             getline(cin, newPassword);
             newPassword = trim(newPassword);
+
             if (newPassword == "z" || newPassword == "Z") {
                 cout << "Returning to menu..." << endl;
-                continue; // Exit the loop to go back to the home menu
+                continue;
             }
-            // Validate the new password
-            if(!isvalidPassword(newPassword)) {
+
+            if (!isvalidPassword(newPassword)) {
                 cout << "Invalid password. Please try again." << endl;
-                continue; // Skip to the next iteration of the loop
+                continue;
             }
-            if(!newPassword.empty()){
+
+            if (!newPassword.empty()) {
                 string salt = currentUser->salt();
                 string hashedPassword = sha256(newPassword + salt);
                 currentUser->setPassword(hashedPassword);
-                map<string, string> updated_values={
-                    {"Password", hashedPassword},        
+
+                map<string, string> updated_values = {
+                    {"Password", hashedPassword},
                     {"Salt", salt}
                 };
 
-            //Xử lý OTP
-            if(!isAdmin) {
-            string secretKey = currentUser->salt(); // Use the user's wallet as the secret key
-            string transactionID = generateTransactionID(); // Use the user's account name as the transaction ID
-            auto now = std::chrono::system_clock::now();
-            long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
-            long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
-            if(secretKey.empty() || transactionID.empty()) {
-                std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
-                return; // Exit if secret key or transaction ID is empty
-            }
-            // Generate and verify OTP
-            cout << "DEBUG: Generating OTP for user: " << currentUser->accountName() << std::endl;
-            string otp = generateOTP(secretKey, transactionID);
-            cout << "DEBUG: OTP generated: " << otp << std::endl;
-            cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
-            cout << "Please enter the OTP for confirmation!" << std::endl;
-            int otpAttempts = 0;
-            const int maxOtpAttempts = 3;
-            bool otpVerified = false;
-            string userOtp;
-            while (otpAttempts < maxOtpAttempts) {
-                std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
-                getline(std::cin, userOtp);
-                userOtp = trim(userOtp);
-                now = std::chrono::system_clock::now();
-                long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
-                long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
-                if (verifyOTP(userOtp, secretKey, transactionID)) {
-                    otpVerified = true;
-                    break;
-                } else {
-                    otpAttempts++;
-                    if (otpAttempts == maxOtpAttempts) {
-                        std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
-                        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
-                        //return arrow::Status::~Status("You entered incorrect OTP 3 times. User info change cancelled!"); // Exit if OTP verification fails
-                        continue;
+                if (!isAdmin) {
+                    string secretKey = currentUser->salt();
+                    string transactionID = generateTransactionID();
+                    auto now = std::chrono::system_clock::now();
+                    long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                    long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
+
+                    if (secretKey.empty() || transactionID.empty()) {
+                        std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
+                        return;
                     }
-                if(currentTimeSeconds > initialTimeStep) {
-                    otp = generateOTP(secretKey, transactionID); // Regenerate OTP if current time step has changed
-                    cout << "OTP has expried. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+
+                    cout << "DEBUG: Generating OTP for user: " << currentUser->accountName() << std::endl;
+                    string otp = generateOTP(secretKey, transactionID);
+                    cout << "DEBUG: OTP generated: " << otp << std::endl;
+                    cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+                    cout << "Please enter the OTP for confirmation!" << std::endl;
+
+                    int otpAttempts = 0;
+                    const int maxOtpAttempts = 3;
+                    bool otpVerified = false;
+                    string userOtp;
+
+                    while (otpAttempts < maxOtpAttempts) {
+                        std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
+                        getline(std::cin, userOtp);
+                        userOtp = trim(userOtp);
+
+                        now = std::chrono::system_clock::now();
+                        long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                        long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
+
+                        if (verifyOTP(userOtp, secretKey, transactionID)) {
+                            otpVerified = true;
+                            break;
+                        } else {
+                            otpAttempts++;
+                            if (otpAttempts == maxOtpAttempts) {
+                                std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
+                                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
+                                continue;
+                            }
+                            if (currentTimeSeconds > initialTimeStep) {
+                                otp = generateOTP(secretKey, transactionID);
+                                cout << "OTP has expired. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+                            }
+                            std::cout << "Invalid OTP. Please try again." << std::endl;
+                        }
+                    }
                 }
+
+                json user_info_json = convertUserInfo2Json(currentUser);
+                json updated_password_values;
+                updated_password_values["Password"] = currentUser->password();
+                updated_password_values["Salt"] = currentUser->salt();
+                editUserAPI(user_info_json, updated_password_values);
             }
-            std::cout << "Invalid OTP. Please try again." << std::endl;
-            }
-        }
-            
-        arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
-            if (!status.ok()) {
-                    cout << "Error updating user info: " << status.ToString() << endl;
-                    logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user password");
-                    continue;
-                }
-                cout << "Password changed successfully!" << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Password changed successfully");
-            }
-            else{
-                cout << "Password cannot be empty!" << endl;
-            }
-        } else if(subChoice == 3 && isAdmin) {
+
+        } else if (subChoice == 3 && isAdmin) {
             int newpoints;
             cout << "Enter points (The first add points max 100 point): " << endl;
             cin >> newpoints;
             if (cin.fail() || newpoints < 0) {
-                cin.clear(); // Clear the error state
-                cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Ignore invalid input
+                cin.clear();
+                cin.ignore(numeric_limits<std::streamsize>::max(), '\n');
                 cout << "Invalid point. Setting to 0" << endl;
-                newpoints = 0; // Exit if point is invalid
+                newpoints = 0;
             }
-            currentUser->setPoint(newpoints); // Update the points in the User object
-            map<string, string> updated_values={
+
+            currentUser->setPoint(newpoints);
+            map<string, string> updated_values = {
                 {"Points", std::to_string(currentUser->point())}
             };
-            arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
+
+            arrow::Status status = updateUserInfo(filename, currentUser, updated_values);
             if (!status.ok()) {
                 cout << "Error updating user info: " << status.ToString() << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user points"); 
+                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user points");
                 continue;
             }
+
             cout << "Points changed successfully!" << endl;
             logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Points changed successfully");
-            break; // Exit the loop to go back to the home menu
-        }
-        
-        else if(subChoice==0){
+            break;
+        } else if (subChoice == 0) {
             cout << "Back to main menu" << endl;
             cout << "DEBUG: End of changeuserinfo" << endl;
-            break; // Exit the loop to go back to the main menu
+            break;
         } else {
             cout << "Invalid choice. Please try again." << endl;
         }
@@ -1148,8 +1166,33 @@ void userHomeMenu(Client *& currentClient) {
 
         if(choice == 1){
             User * currentUser = nullptr;
-            loginUser(infile, currentUser);
-            
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+            std::string userName;
+            std::cout << "User name (or 'z' to return Menu): ";
+            std::getline (std::cin, userName);
+            std::cin.clear(); // Clear any error state;
+            int failedLoginCount = 0;
+            while (failedLoginCount < 3) {
+                std::string userPassword;
+                std::cout << "Password (or 'z' to return Menu): ";
+                std::getline (std::cin, userPassword);
+                userPassword = trim(userPassword);   
+                std::string result = loginUserAPI(userName, userPassword);
+                json j = json::parse(result);
+                if (j["status"] == true) {
+                    int user_point = std::stoi(j["user"]["point"].get<std::string>());
+                    currentClient = new User(j["user"]["fullname"],
+                                            j["user"]["username"],
+                                            j["user"]["password"],
+                                            user_point,
+                                            j["user"]["salt"],
+                                            j["user"]["wallet"]);
+                    User * currentUser = dynamic_cast<User*>(currentClient);
+                    UserLoginMenu(currentUser);
+                    break;
+                }
+
+            }         
         } else if(choice == 2){
             // User * 
             currentClient = enterUserInfoRegister(false, false);

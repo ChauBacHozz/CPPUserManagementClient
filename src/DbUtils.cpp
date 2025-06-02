@@ -300,12 +300,12 @@ std::string TruncateString(const std::string& s, size_t max_len = 15) {
     return s.substr(0, max_len) + "...";
 }
 
-std::string trim(const std::string& str) {
-    size_t first = str.find_first_not_of(" \t\n\r");
-    size_t last = str.find_last_not_of(" \t\n\r");
-    if (first == std::string::npos) return "";
-    return str.substr(first, last - first + 1);
-}
+// std::string trim(const std::string& str) {
+//     size_t first = str.find_first_not_of(" \t\n\r");
+//     size_t last = str.find_last_not_of(" \t\n\r");
+//     if (first == std::string::npos) return "";
+//     return str.substr(first, last - first + 1);
+// }
 
 void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int> columns_orders) {
     const int col_width = 15;

@@ -27,7 +27,6 @@ public:
     bool createUser(std::string FullName, std::string UserName, std::string UserPassword, int point);
 
 
-
 };
 
 #endif

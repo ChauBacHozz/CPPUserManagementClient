@@ -22,6 +22,16 @@
 #include <transaction_utils.h>
 using namespace std;
 
+// Forward declaration for AppendUserStatusParquetRow
+arrow::Status AppendUserStatusParquetRow(
+    const std::string& statusFile,
+    const std::string& userName,
+    const std::string& isGeneratedPassword,
+    const std::string& isFirstLogin,
+    const std::string& isLocked,
+    const std::string& lastLoginDate
+);
+
 
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
@@ -40,7 +50,19 @@ void printUserEditMenu() {
     cout << "---------------------------------" << endl;
     cout << "1. Add User" << endl;
     cout << "2. Add Users From CSV" << endl;
-    cout << "3. Edit User Info" << endl;
+    cout << "3. Manage User Info" << endl;
+    cout << "4. Manage User Status" << endl;
+    cout << "0. Back" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "Enter your option: ";
+}
+
+void printUserStatusManageMenu() {
+    cout << "--- ADMIN MANAGE USER STATUS MENU ---" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "1. Edit GenPassword Status" << endl;
+    cout << "2. Unlock Acount" << endl;
+    cout << "3. Restore Acount" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
@@ -62,7 +84,7 @@ void printchangeUserInfoMenu(bool isAdmin) {
     cout << "---------------------------------\n";
     cout << "1. Change Full Name\n"; 
     cout << "2. Change Password\n";
-    if (isAdmin) { cout << "3. Edit Point\n"; }
+    if (isAdmin) { cout << "3. Add Point\n"; }
     cout << "0. Back\n";
     cout << "---------------------------------\n";
     cout << "Enter your choice: ";
@@ -228,19 +250,23 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
 
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
-    do {
-    cout << "User FullName (or 'z' to return to Menu): ";
-    getline(cin, FullName);
-    FullName = trim(FullName);
-    if (FullName == "z" || FullName == "Z") {
-        cout << "User creation cancelled." << endl;
-        cout << "Return to menu..." << endl;
-        return nullptr; // Return to menu if user enters 'z'
-    }
-    if(!isvalisfullName(FullName)) {
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore any leftover input
+        
+    while (true) {
+        cout << "User FullName (or 'z' to return to Menu): ";
+        getline(cin, FullName);
+        FullName = trim(FullName);
+        if (FullName == "z" || FullName == "Z") {
+            cout << "User creation cancelled." << endl;
+            cout << "Return to menu..." << endl;
+            return nullptr; // Return to menu if user enters 'z'
+        }
+        if(!isvalisfullName(FullName)) {
         cout << "Invalid full name. Please try again." << endl;
+        continue; // Prompt for full name again if invalid
+        }
+        break; // Exit the loop if the full name is valid
     }
-    } while (!isvalisfullName(FullName));
 
     while (true){
         cout << "User username (or 'z' to return to Menu): ";
@@ -260,7 +286,7 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
         }  
     }
 
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
+    //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
     
     bool isGeneratedPassword = false; // Flag to indicate if the password is generated
     if (isAdmin) {
@@ -346,6 +372,28 @@ if(!user) {
     cout << "Error creating user object." << endl;
     return nullptr; // Exit if user object creation fails
 }
+//ghi trạng thái generated password
+if(isGeneratedPassword != false) {
+    // Append user status to the parquet file
+    // Assuming the function appendUserStatusRow is defined elsewhere
+    // and it appends a row to the user status parquet file
+    cout << "Appending user status to parquet file..." << endl;
+    // Define the status file and default values
+std::string statusFile = "../assets/userstatus.parquet";
+std::string defaultStatus = "false";
+std::string defaultDate = "N/A"; // Hoặc có thể sử dụng ngày hiện tại
+std::string isGenStr = isGeneratedPassword ? "true" : "false";
+if(!appendUserStatusRow(statusFile, 
+                            userName, 
+                            isGenStr, 
+                            defaultStatus, 
+                            defaultStatus, 
+                            defaultDate)) {
+    cout << "Error appending user status to parquet file!" << endl;
+    }
+}
+cout << "Debug: User object created successfully!" << endl;
+// Return the created user object
 return user;
 }
 
@@ -506,11 +554,63 @@ bool UserEditMenu(Admin * currentAdmin) {
                     break; // Skip to the next iteration of the loop
                 }
                 cout << "DEBUG: Current user found: " << currentUser->accountName() << ", calling changeuserinfo" << endl;
-                changeuserinfo(filename, currentUser, true);
+                changeuserinfo(filename, currentUser, true, false); // Pass true for isAdmin and false for forceChangePassword
                 cout << "DEBUG: Returned from changeuserinfo" << endl;
                 cout << "User info changed successfully!" << endl;
                 cin.get(); // Wait for user input before continuing
             break;
+        }
+        case 4: {
+            string fileStatus = "../asset/userstatus.parquet";
+            string user;
+            cout << "Enter user name for edit (or 'z' to return Menu): ";
+                cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+                getline (cin, user);
+                user = trim(user);
+                if (user == "z" || user == "Z") {
+                    std::cout << "Returning to Menu..." << std::endl;
+                    string currentUser = nullptr;
+                    break;
+                }
+                std::shared_ptr<arrow::io::ReadableFile> infileStatus;
+                try {
+                    PARQUET_ASSIGN_OR_THROW(infileStatus, arrow::io::ReadableFile::Open(fileStatus));
+                } catch (const arrow::Status& status) {
+                    std::cerr << "Error opening file: " << status.ToString() << std::endl;
+                    cout << "Returning to Menu..." << endl;
+                    std::cin.get(); // Wait for user input before continuing
+                    break;        
+                }
+
+                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infileStatus)};
+                //parquet::StreamReader stream(reader.get());
+
+                std::string dbUser, dbIsGeneratedPassword, dbIsFirstLogin, dbIsLocked, dbLastLoginDate;
+                bool userFound = false;
+
+                while (!stream.eof()) {
+                    stream >> dbUser >> dbIsGeneratedPassword >> dbIsFirstLogin >> dbIsLocked >> dbLastLoginDate >> parquet::EndRow;
+                    if (user == dbUser) {
+                        userFound = true;
+                        cout << "User Status Info:" << endl;
+                        cout << "UserName: " << dbUser << endl;
+                        cout << "isGeneratedPassword: " << dbIsGeneratedPassword << endl;
+                        cout << "isFirstLogin: " << dbIsFirstLogin << endl;
+                        cout << "isLocked: " << dbIsLocked << endl;
+                        cout << "LastLoginDate: " << dbLastLoginDate << endl;
+                        break;
+                    }
+                }
+                
+                if (!userFound) {
+                    cout << "User status not found for: " << user << endl;
+                    cin.get();
+                    break;
+                }
+                cout << "Press Enter to continue..." << endl;
+                cin.get();
+                
+                
         }
         default:
             break;
@@ -628,18 +728,21 @@ void AdminLoginMenu(Client *& currentClient) {
 
 }
 
-void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = false) {
+void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = false, bool forceChangePassword = false) {
     
     if(!currentUser) {
         std::cerr << "Error: Current user is null!" << std::endl;
         return;
     }
-  
+    
     //cout << "DEBUG: Entering changeuserinfo function" << endl;
     while (true){
+        int subChoice;
+        if (forceChangePassword) {
+            subChoice = 2; // Force change password
+        } else {
         printchangeUserInfoMenu(isAdmin);
         //cout << "Debug: Entering changeuserinfo function" << endl;
-        int subChoice;
         //cin >> subChoice;
         //cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
         if (!(cin >> subChoice)) {
@@ -649,6 +752,7 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
             continue; // Skip to the next iteration of the loop
         }
         cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
+        }
         if(subChoice==1){
             string newFullName;
             cout << "Enter new full Name (or 'z' to return to Menu): ";
@@ -728,7 +832,7 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
                 continue;
             }
         cout << "Full name changed successfully!" << endl;
-        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
+        //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
         } else if(subChoice==2){
             string newPassword;
             cout << "Enter new password (or 'z' to return to Menu): ";
@@ -807,7 +911,15 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
                     continue;
                 }
                 cout << "Password changed successfully!" << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Password changed successfully");
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Password changed successfully");
+                // --- CẬP NHẬT isGeneratedPassword về "false" ---
+                if (forceChangePassword) {
+                std::string statusFile = "../assets/userstatus.parquet";
+                std::map<std::string, std::string> status_update = {{"isGeneratedPassword", "false"}};
+                updateUserStatusRow(statusFile, currentUser->accountName(), status_update);
+                cout << "User status updated: isGeneratedPassword = false" << endl;
+                break; // Thoát khỏi vòng lặp đổi mật khẩu bắt buộc
+            }
             }
             else{
                 cout << "Password cannot be empty!" << endl;
@@ -829,11 +941,11 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
             arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
             if (!status.ok()) {
                 cout << "Error updating user info: " << status.ToString() << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user points"); 
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user points"); 
                 continue;
             }
             cout << "Points changed successfully!" << endl;
-            logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Points changed successfully");
+            //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Points changed successfully");
             break; // Exit the loop to go back to the home menu
         }
         
@@ -1119,7 +1231,7 @@ void UserLoginMenu(User *& currentUser) {
            printUserInfoFromDb(currentUser);
            std::string filename = "../assets/users.parquet";
            //cout << "DEBUG: End of changeuserinfo" << endl;
-           changeuserinfo(filename, currentUser, false); // Call the function to change user info
+           changeuserinfo(filename, currentUser, false, false); // Call the function to change user info
            //cout << "DEBUG: End of changeuserinfo" << endl;
         } else if(choice == 2){
             eWallet(currentUser);
@@ -1165,6 +1277,7 @@ void userHomeMenu(Client *& currentClient) {
             int point = currentUser->point();
             std::string wallet = currentUser->wallet();
             arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
+            cout << "DEBUG: Status after AppendUserParquetRow: " << status.ToString() << endl;
             if(!status.ok()) {
                 cout << "Error registering user: " << status.ToString() << endl;
                 return;

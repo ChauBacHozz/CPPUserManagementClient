@@ -4,12 +4,12 @@
 #include <arrow/api.h>
 #include <arrow/io/api.h>
 #include "arrow/io/file.h"
-#include <parquet/arrow/reader.h>
-#include <parquet/arrow/writer.h>
-#include "parquet/stream_reader.h"
+#include "arrow/io/file.h"
 #include "Menus.h"
 #include "User.h"
 #include <arrow/pretty_print.h>
+#include <arrow/result.h>
+#include <arrow/util/macros.h>
 #include <string>
 #include <memory>
 #include <fstream>
@@ -24,7 +24,208 @@
 #include <chrono>
 #include <arrow/api.h>
 #include <transaction_utils.h>
+#include <UserStatus.h>
+#include <parquet/arrow/reader.h>
+#include <parquet/arrow/writer.h>
+#include <parquet/stream_reader.h>
+#include <parquet/stream_writer.h>
 
+//Hàn đọc trạng thái User Status
+bool readUserStatusFromFile(std::string& user, UserStatus& status) {
+    std::shared_ptr<arrow::io::ReadableFile> infileStatus;
+    auto fileStatus = arrow::io::ReadableFile::Open("../assets/userstatus.parquet");
+    if (!fileStatus.ok()) {
+        std::cerr << "Error opening file: " << fileStatus.status().ToString() << std::endl;
+        return false;
+    }
+    infileStatus = fileStatus.ValueOrDie();
+    std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::Open(infileStatus);
+    parquet::StreamReader stream(std::move(reader));
+    std::string dbUser, dbIsGeneratedPassword, dbFailedLogin, dbDeleteUser, dbDate;
+    bool userFound = false;
+    while (!stream.eof()) {
+        stream >> dbUser >> dbIsGeneratedPassword >> dbFailedLogin >> dbDeleteUser >> dbDate >> parquet::EndRow;
+        if (dbUser.empty()) {
+            std::cerr << "Warning: Empty user in userstatus.parquet row, skipping ..." << std::endl;
+            continue;
+        }
+        if (dbUser == user) {
+            userFound = true;
+            status.setgetUser(dbUser);
+            status.setIsGeneratedPassword(dbIsGeneratedPassword);
+            status.setFailedLogin(dbFailedLogin);
+            status.setDeleteUser(dbDeleteUser);
+            status.setDate(dbDate);
+            break;
+        }
+    }
+    if (!userFound) {
+        // Khởi tạo trạng thái mặc định nếu không tìm thấy người dùng
+        std::string defaultStatus = "false";
+        std::string defaultDate = "N/A";
+        std::string fileStatus = "../assets/userstatus.parquet";
+        status = UserStatus(user, defaultStatus, defaultStatus, defaultStatus, defaultDate);
+        // Thêm dòng mới vào file userstatus.parquet
+        appendUserStatusRow(fileStatus, user, defaultStatus, defaultStatus, defaultStatus, defaultDate);
+        std::cerr << "User: " << user << " not found in userstatus.parquet, initialized with default values!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+//Hàm thêm một dòng mới vào file userstatus.parquet
+bool appendUserStatusRow(std::string& filename,
+                         std::string& user,
+                         std::string& isGeneratedPassword,
+                         std::string& failedLogin,
+                         std::string& deleteUser,
+                         std::string& date) {
+    // Đọc bảng hiện tại (nếu có)
+    std::shared_ptr<arrow::Table> existing_table;
+    getTableFromFile(filename, existing_table);
+
+    // Tạo builder cho dòng mới
+    arrow::StringBuilder bdUser, bdIsGeneratedPassword, bdFailedLogin, bdDeleteUser, bdDate;
+    bdUser.Append(user);
+    bdIsGeneratedPassword.Append(isGeneratedPassword);
+    bdFailedLogin.Append(failedLogin);
+    bdDeleteUser.Append(deleteUser);
+    bdDate.Append(date);
+
+    // Chuyển builder về dạng array
+    std::shared_ptr<arrow::Array> arrUser, arrIsGeneratedPassword, arrFailedLogin, arrDeleteUser, arrDate;
+    bdUser.Finish(&arrUser);
+    bdIsGeneratedPassword.Finish(&arrIsGeneratedPassword);
+    bdFailedLogin.Finish(&arrFailedLogin);
+    bdDeleteUser.Finish(&arrDeleteUser);
+    bdDate.Finish(&arrDate);
+
+    // Tạo schema cho bảng userstatus.parquet
+    auto schema = arrow::schema({
+        arrow::field("User", arrow::utf8()),
+        arrow::field("isGeneratedPassword", arrow::utf8()),
+        arrow::field("failedLogin", arrow::utf8()),
+        arrow::field("deleteUser", arrow::utf8()),
+        arrow::field("Date", arrow::utf8())
+    });
+
+    auto new_table = arrow::Table::Make(schema, {arrUser, 
+                                                 arrIsGeneratedPassword, 
+                                                 arrFailedLogin, 
+                                                 arrDeleteUser, 
+                                                 arrDate});
+    
+    // Nếu bảng hiện tại không có, tạo bảng mới
+    std::shared_ptr<arrow::Table> final_table;
+    if (existing_table && existing_table->num_rows() > 0) {
+        // Nối bảng cũ và bảng mới
+        arrow::Result<std::shared_ptr<arrow::Table>> concat_result = arrow::ConcatenateTables({existing_table, new_table});
+        if (!concat_result.ok()) {
+            std::cerr << "Error concatenating tables: " << concat_result.status().ToString() << std::endl;
+            return false;
+        }
+        final_table = concat_result.ValueOrDie();
+    } else {
+        final_table = new_table;
+    }
+
+    // Ghi lại vào file Parquet
+    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    arrow::Status outst = arrow::io::FileOutputStream::Open(filename).Value(&outfile);
+    if (!outst.ok()) {
+        std::cerr << "Error opening output file: " << outst.ToString() << std::endl;
+        return false;
+    }
+    parquet::WriterProperties::Builder props_builder;
+    std::shared_ptr<parquet::WriterProperties> props = props_builder.build();
+    arrow::Status write_st = parquet::arrow::WriteTable(*final_table, arrow::default_memory_pool(), outfile, 1024, props);
+    if (!write_st.ok()) {
+        std::cerr << "Error writing table: " << write_st.ToString() << std::endl;
+        return false;
+    }
+    outfile->Close();
+    return true;
+}
+
+// Hàm ghi trạng thái User Status vào file
+bool updateUserStatusRow(const std::string& filename, const std::string& userName, 
+                        const std::map<std::string, std::string>& updated_values) {
+    // Đọc bảng hiện tại
+    std::shared_ptr<arrow::Table> table;
+    arrow::Status st = getTableFromFile(filename, table);
+    if (!st.ok()) {
+        std::cerr << "Error reading userstatus.parquet: " << st.ToString() << std::endl;
+        return false;
+    }
+
+    // Tìm dòng cần update
+    int64_t rowToUpdate = -1;
+    auto userCol = table->GetColumnByName("User");
+    if (!userCol) {
+        std::cerr << "Column 'User' not found!" << std::endl;
+        return false;
+    }
+    auto arr = std::static_pointer_cast<arrow::StringArray>(userCol->chunk(0));
+    for (int64_t i = 0; i < table->num_rows(); ++i) {
+        if (arr->GetString(i) == userName) {
+            rowToUpdate = i;
+            break;
+        }
+    }
+    if (rowToUpdate == -1) {
+        std::cerr << "User not found in userstatus.parquet!" << std::endl;
+        return false;
+    }
+
+    // Tạo lại các cột, cập nhật các trường cần thiết
+    std::vector<std::shared_ptr<arrow::Array>> newColumns;
+    for (int colIdx = 0; colIdx < table->num_columns(); ++colIdx) {
+        auto column = table->column(colIdx);
+        auto fieldName = table->field(colIdx)->name();
+        std::shared_ptr<arrow::Array> newColumn;
+        auto it = updated_values.find(fieldName);
+        if (it != updated_values.end()) {
+            // Chỉ hỗ trợ string cho mọi trường
+            arrow::StringBuilder builder;
+            auto arr = std::static_pointer_cast<arrow::StringArray>(column->chunk(0));
+            for (int64_t i = 0; i < arr->length(); ++i) {
+                if (i == rowToUpdate)
+                    builder.Append(it->second);
+                else
+                    builder.Append(arr->GetString(i));
+            }
+            builder.Finish(&newColumn);
+        } else {
+            newColumn = column->chunk(0);
+        }
+        newColumns.push_back(newColumn);
+    }
+
+    // Ghi lại file
+    auto newTable = arrow::Table::Make(table->schema(), newColumns);
+    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    arrow::Status outst = arrow::io::FileOutputStream::Open(filename).Value(&outfile);
+    if (!outst.ok()) {
+        std::cerr << "Error opening output file: " << outst.ToString() << std::endl;
+        return false;
+    }
+    parquet::WriterProperties::Builder props_builder;
+    std::shared_ptr<parquet::WriterProperties> props = props_builder.build();
+    arrow::Status write_st = parquet::arrow::WriteTable(*newTable, arrow::default_memory_pool(), outfile, 1024, props);
+    if (!write_st.ok()) {
+        std::cerr << "Error writing table: " << write_st.ToString() << std::endl;
+        return false;
+    }
+    outfile->Close();
+    return true;
+}
+//Hàm update trạng thái User Status
+// bool updateUserStatus(std::string& userName, std::function<void(UserStatus&)>& updateFunc) {
+        
+//     return true;
+// }
+
+// hàm lấy bảng từ file user.parquet
 arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arrow::Table>& existing_table) {
     // Mở file parquet
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -40,6 +241,7 @@ arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arro
     return arrow::Status::OK();
 }
 
+//Hàm thêm một dòng mới vào file user.parquet
 arrow::Status AppendUserParquetRow(std::string& filename, 
                                    std::string& FullName, 
                                    std::string& UserName, 
@@ -203,6 +405,7 @@ arrow::Status AppendBatchUserParquetRows(std::string& filename,
 
 }
 
+//hàm chuyển đổi vector chuỗi sang vector int64_t
 std::vector<int64_t> convertToIntVector(const std::vector<std::string>& strVec) {
     std::vector<int64_t> intVec;
     intVec.reserve(strVec.size());  // Tối ưu hiệu năng
@@ -222,6 +425,7 @@ std::vector<int64_t> convertToIntVector(const std::vector<std::string>& strVec) 
     return intVec;
 }
 
+//hàm đọc file CSV và trả về bảng dữ liệu
 std::vector<std::vector<std::string>> ReadCSV(const std::string& filename) {
     std::vector<std::vector<std::string>> table;
     std::ifstream file(filename);
@@ -249,6 +453,7 @@ std::vector<std::vector<std::string>> ReadCSV(const std::string& filename) {
     return table;
 }
 
+//hàm chuyển đổi bảng dữ liệu từ dạng hàng sang dạng cột (transpose)
 std::vector<std::vector<std::string>> TransposeTable(const std::vector<std::vector<std::string>>& table) {
     if (table.empty()) return {};
 
@@ -265,6 +470,7 @@ std::vector<std::vector<std::string>> TransposeTable(const std::vector<std::vect
     return transposed;
 }
 
+//hàm lưu người dùng từ file CSV vào cơ sở dữ liệu
 bool saveUserToDbFromCSV(std::string& filename) {
     std::vector<std::vector<std::string>> userInfoTable = ReadCSV(filename);
     userInfoTable = TransposeTable(userInfoTable);
@@ -295,11 +501,13 @@ bool saveUserToDbFromCSV(std::string& filename) {
     return true;
 }
 
+// Hàm cắt chuỗi nếu quá dài
 std::string TruncateString(const std::string& s, size_t max_len = 15) {
     if (s.length() <= max_len) return s;
     return s.substr(0, max_len) + "...";
 }
 
+//hàm cắt chuỗi và loại bỏ khoảng trắng ở đầu và cuối
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
     size_t last = str.find_last_not_of(" \t\n\r");
@@ -307,6 +515,7 @@ std::string trim(const std::string& str) {
     return str.substr(first, last - first + 1);
 }
 
+//hàm in ra bảng dữ liệu giống như giao diện dòng lệnh
 void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int> columns_orders) {
     const int col_width = 15;
 
@@ -347,6 +556,7 @@ void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<i
     }
 }
 
+//hàm kiểm tra xem người dùng có tồn tại trong cơ sở dữ liệu hay không
 arrow::Status printUserInfoFromDb() {
     std::string filename = "../assets/users.parquet";
     std::shared_ptr<arrow::Table> table;
@@ -357,6 +567,7 @@ arrow::Status printUserInfoFromDb() {
     return arrow::Status::OK();
 }
 
+//hàm ghi log các lần đăng nhập thất bại
 void logFailedLogin(std::string& userName) {
     std::ofstream logFile("login_failures.log", std::ios::app);
     if (logFile.is_open()) {
@@ -367,6 +578,7 @@ void logFailedLogin(std::string& userName) {
     }
 }
 
+// hàm đăng nhập người dùng
 void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser){
     //system("clear");
     if (currentUser != nullptr) {
@@ -424,7 +636,42 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         return;
     }
     std::cout << "User found: " << dbUserName << std::endl;
+    
+    UserStatus status(dbUserName, "false", "false", "false", "N/A");
+    readUserStatusFromFile(dbUserName, status);
+    bool isDeleted = (status.getDeleteUser() == "true");
+    bool isLocked = (status.getFailedLogin() == "true");
+    bool isGeneratedPassword = (status.getIsGeneratedPassword() == "true");
+    //bool isGeneratedPassword = (status.getIsGeneratedPassword() == "true");
+    /*std::cout << "DEBUG: isGeneratedPassword=" << status.getIsGeneratedPassword()
+                << ", failedLogin=" << status.getFailedLogin()
+                << ", deleteUser=" << status.getDeleteUser() << std::endl; */
+    // Kiểm tra trạng thái người dùng
+    UserStatusType userStatus = status.checkStatus(status);
+        bool canLogin = true;
+        if (isDeleted) {
+            std::cout << "Your account has been deleted. Please contact Admin for support!" << std::endl;
+            //currentUser = nullptr;
+            //return;
+            canLogin = false;
+        } else if (isLocked) {
+            std::cout << "Your account is locked due to multiple failed login attempts. Please contact Admin for support!" << std::endl;
+            //currentUser = nullptr;
+            //return;
+            canLogin = false;
+        } else if (isGeneratedPassword) {
+            std::cout << "Your password is generated by system." << std::endl;
+            std::cout << "Please enter generated Password to change it!" << std::endl;
+        }
 
+        if(!canLogin) {
+            std::cout << "You cannot login at this time." << std::endl;
+            std::cout << "Press any key to return Menu..." << std::endl;
+            std::cin.get(); // Wait for user input
+            //currentUser = nullptr;
+            return;
+        }
+    
     int failedLoginCount = 0;
     while (failedLoginCount < 3) {
         std::string userpassword;
@@ -446,6 +693,14 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         if (hashedPassword == dbhasdedPassword) {
             std::cout << "Login successful!" << std::endl;
             currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
+            if (userStatus == UserStatusType::GENERATED_PASSWORD) {
+                std::string fileName = "../assets/users.parquet";
+                //ép buộc người dùng đổi mật khẩu nếu mật khẩu được hệ thống sinh ra
+                changeuserinfo(fileName, currentUser, false, true);
+
+                break;
+            }
+
             UserLoginMenu(currentUser);
             break;
         } else {
@@ -454,6 +709,12 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
             if (failedLoginCount == 3) {
                 logFailedLogin(userName);
                 std::cout << "Account temporarily locked due to multiple failed login attempts." << std::endl;
+                
+                // Cập nhật trạng thái failedLogin và locked trong userstatus.parquet
+                std::string statusFile = "../assets/userstatus.parquet";
+                std::map<std::string, std::string> updated_values = {{"failedLogin", "true"}};
+                updateUserStatusRow(statusFile, userName, updated_values);
+
                 currentUser = nullptr;
                 return;
             }
@@ -487,6 +748,7 @@ std::string getCurruntTime() {
     return std::string(buffer);
 }
 
+//Hàm sinh mã giao dịch duy nhất
 std::string generateTxId() {
     // Sử dụng thời gian hiện tại và một số ngẫu nhiên để tạo mã giao dịch duy nhất
     auto now = std::chrono::system_clock::now();
@@ -495,32 +757,33 @@ std::string generateTxId() {
     return sha256(txId);
 }
 
-arrow::Status registerUser(User *& user) {
-    std::string filename = "../assets/users.parquet";
-    // Auto set user point = 0 if register
-    //user->setPoint(0);
-    std::string fullName = user->fullName();
-    std::string accountName = user->accountName();
-    std::string password = user->password();
-    std::string salt = user->salt();
-    int point = user->point();
-    std::string wallet = user->wallet();
+//hàm đăng ký người dùng mới
+// arrow::Status registerUser(User *& user) {
+//     std::string filename = "../assets/users.parquet";
+//     // Auto set user point = 0 if register
+//     //user->setPoint(0);
+//     std::string fullName = user->fullName();
+//     std::string accountName = user->accountName();
+//     std::string password = user->password();
+//     std::string salt = user->salt();
+//     int point = user->point();
+//     std::string wallet = user->wallet();
 
-    arrow::Status resultRegisterUser = AppendUserParquetRow(filename,
-                                                            fullName,
-                                                            accountName,
-                                                            password,
-                                                            salt,
-                                                            point,
-                                                            wallet);
+//     arrow::Status resultRegisterUser = AppendUserParquetRow(filename,
+//                                                             fullName,
+//                                                             accountName,
+//                                                             password,
+//                                                             salt,
+//                                                             point,
+//                                                             wallet);
     
-    if (!resultRegisterUser.ok()) {
-        std::cerr << "Error registering user: " << resultRegisterUser.ToString() << std::endl;
-        return resultRegisterUser;
-    } 
-    std::cout << "User registered successfully!" << std::endl;
-    return arrow::Status::OK();
-}
+//     if (!resultRegisterUser.ok()) {
+//         std::cerr << "Error registering user: " << resultRegisterUser.ToString() << std::endl;
+//         return resultRegisterUser;
+//     } 
+//     std::cout << "User registered successfully!" << std::endl;
+//     return arrow::Status::OK();
+// }
 
 arrow::Status findUserrow(const std::shared_ptr<arrow::Table>& table, 
                           const std::string& userName,

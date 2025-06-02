@@ -513,12 +513,12 @@ bool UserEditMenu(Admin * currentAdmin) {
                 arrow::Status status = updateUserInfo(filename, currentUser, pending_updates); // Update the user info in the database
                 if (!status.ok()) {
                     cout << "Error updating user info: " << status.ToString() << endl;
-                    logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user info");
+                    //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user info");
                     cin.get(); // Wait for user input before continuing
                     return false; // Exit if the update fails
                 }
                 cout << "User info updated successfully!" << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
                 }
                 //cout << "DEBUG: Returned from changeuserinfo" << endl;
                 cout << "User info changed successfully!" << endl;
@@ -1045,7 +1045,7 @@ void UserLoginMenu(User *& currentUser) {
                     continue; // Skip to the next iteration of the loop
                 }
                 cout << "User info updated successfully!" << endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
             }
            //cout << "DEBUG: End of changeuserinfo" << endl;
         } else if(choice == 2){

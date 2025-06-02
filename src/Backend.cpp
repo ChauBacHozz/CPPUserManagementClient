@@ -81,3 +81,12 @@ std::string getUserInfoAllAPI() {
     std::string api_result = sendAPI(user_get_info_table);
     return api_result;
 }
+
+std::string searchUserAPI(std::string userName) {
+    std::string purpose = "USERSEARCH";
+    json printUserEditMenu;
+    printUserEditMenu["purpose"] = purpose;
+    printUserEditMenu["username"] = userName;
+    std::string api_result = sendAPI(printUserEditMenu);
+    return api_result;
+}

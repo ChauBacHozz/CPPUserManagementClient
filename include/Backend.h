@@ -7,4 +7,5 @@ std::string loginUserAPI(std::string& user_name, std::string& password);
 std::string editUserAPI(json user_info, json updated_values);
 std::string registerUserAPI(json user_info);
 std::string getUserInfoAllAPI();
+std::string searchUserAPI(std::string userName);
 

@@ -436,54 +436,37 @@ bool UserEditMenu(Admin * currentAdmin) {
                     string currentUser = nullptr;
                     break;
                 }
-                std::shared_ptr<arrow::io::ReadableFile> infile;
-                try {
-                    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
-                } catch (const arrow::Status& status) {
-                    std::cerr << "Error opening file: " << status.ToString() << std::endl;
-                    cout << "Returning to Menu..." << endl;
-                    std::cin.get(); // Wait for user input before continuing
-                    break;        
-                }
 
-                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
-                //parquet::StreamReader stream(reader.get());
-
-                std::string dbFullName;
-                std::string dbUserName;
-                std::string dbSalt;
-                std::string dbWalletId;
-                std::string dbhasdedPassword;
-                int64_t dbUserPoint;
-                bool userfound = false;
-                User * currentUser = nullptr;
- 
-                while (!stream.eof() ){
-                    stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
-                    //std::cout << dbUserName << std::endl;
-                    if (userName == dbUserName) {
-                        userfound = true; 
-                        currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
-                        cout << "DEBUG: User found: " << currentUser->accountName() << endl;
-                        break; 
-                    }
+                // if (!userfound) {
+                //     std::cout << "User " << userName <<" not found! (User invalid)" << std::endl;
+                //     cout << "Please check the user name and try again." << endl;
+                //     cin.get(); // Wait for user input before continuing
+                //     break;
+                // }
+                // if (!currentUser) {
+                //     cout << "User " << currentUser << " not found!" << endl;
+                //     cout << "Please check the user name and try again." << endl;
+                //     cin.get();
+                //     break; // Skip to the next iteration of the loop
+                // }
+                std::string search_user = searchUserAPI(userName);
+                json search_user_result = json::parse(search_user);
+                if (search_user_result["status"]) {
+                    cout << "DEBUG: Current user found: " << userName << ", calling changeuserinfo" << endl;
+                    json user_json = search_user_result["user"];
+                    User * user = new User(user_json["fullname"].get<std::string>(),
+                                        user_json["username"].get<std::string>(),
+                                        user_json["password"].get<std::string>(),
+                                        user_json["point"].get<int>(),
+                                        user_json["salt"].get<std::string>(),
+                                        user_json["wallet"].get<std::string>());
+                    changeuserinfo(filename, user, true);
+                } else {
+                    cout << "DEBUG: Current user not found: " << userName << endl;
                 }
-                if (!userfound) {
-                    std::cout << "User " << userName <<" not found! (User invalid)" << std::endl;
-                    cout << "Please check the user name and try again." << endl;
-                    cin.get(); // Wait for user input before continuing
-                    break;
-                }
-                if (!currentUser) {
-                    cout << "User " << currentUser << " not found!" << endl;
-                    cout << "Please check the user name and try again." << endl;
-                    cin.get();
-                    break; // Skip to the next iteration of the loop
-                }
-                cout << "DEBUG: Current user found: " << currentUser->accountName() << ", calling changeuserinfo" << endl;
-                changeuserinfo(filename, currentUser, true);
-                cout << "DEBUG: Returned from changeuserinfo" << endl;
-                cout << "User info changed successfully!" << endl;
+                // changeuserinfo(filename, currentUser, true);
+                // cout << "DEBUG: Returned from changeuserinfo" << endl;
+                // cout << "User info changed successfully!" << endl;
                 cin.get(); // Wait for user input before continuing
             break;
         }

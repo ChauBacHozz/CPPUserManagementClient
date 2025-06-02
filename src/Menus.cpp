@@ -343,13 +343,13 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
         return nullptr; // Exit if user does not confirm
     }
 
-    // Create a new User object with the provided information
-User* user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
-if(!user) {
-    cout << "Error creating user object." << endl;
-    return nullptr; // Exit if user object creation fails
-}
-return user;
+        // Create a new User object with the provided information
+    User* user = new User(FullName, userName, hashedPassword, userPoint, genSalt, genWalletId);
+    if(!user) {
+        cout << "Error creating user object." << endl;
+        return nullptr; // Exit if user object creation fails
+    }
+    return user;
 }
 
 // Edit user of Admin
@@ -1194,26 +1194,34 @@ void userHomeMenu(Client *& currentClient) {
 
             }         
         } else if(choice == 2){
-            // User * 
+
             currentClient = enterUserInfoRegister(false, false);
             User * currentUser = dynamic_cast<User*>(currentClient);
             if (currentClient == nullptr) {
                 continue; // Return to the user home menu
             }
-            std::string filename = "../assets/users.parquet";
-            std::string fullName = currentUser->fullName();
-            std::string accountName = currentUser->accountName();  
-            std::string password = currentUser->password();
-            std::string salt = currentUser->salt();
-            int point = currentUser->point();
-            std::string wallet = currentUser->wallet();
-            arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
-            if(!status.ok()) {
-                cout << "Error registering user: " << status.ToString() << endl;
-                return;
+            // std::string filename = "../assets/users.parquet";
+            // std::string fullName = currentUser->fullName();
+            // std::string accountName = currentUser->accountName();  
+            // std::string password = currentUser->password();
+            // std::string salt = currentUser->salt();
+            // int point = currentUser->point();
+            // std::string wallet = currentUser->wallet();
+            json user_info_json = convertUserInfo2Json(currentUser);
+            registerUserAPI(user_info_json);
+
+
+            while (true) {
+
             }
-            UserLoginMenu(currentUser);
-            delete currentUser; // Clean up the dynamically allocated user object
+            // arrow::Status status = registerUser(currentUser);
+            // arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
+            // if(!status.ok()) {
+            //     cout << "Error registering user: " << status.ToString() << endl;
+            //     return;
+            // }
+            // UserLoginMenu(currentUser);
+            // delete currentUser; // Clean up the dynamically allocated user object
         } else if(choice == 0){
             cout << "Back to Main Menu..." << endl;
             break; // Exit the loop to go back to the main menu

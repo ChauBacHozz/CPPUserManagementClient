@@ -65,3 +65,12 @@ std::string editUserAPI(json user_info, json updated_values) {
     std::string api_result = sendAPI(user_edit_info);
     return api_result;
 }
+
+std::string registerUserAPI(json user_info){
+    std::string purpose = "USERREGISTER";
+    json user_register_info;
+    user_register_info["purpose"] = purpose;
+    user_register_info["userinfo"] = user_info;
+    std::string api_result = sendAPI(user_register_info);
+    return api_result;
+}

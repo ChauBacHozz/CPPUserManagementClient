@@ -673,7 +673,7 @@ void AdminLoginMenu(Client *& currentClient) {
                     if (!status.ok()) {
                         std::cerr << "Error printing user info: " << status.ToString() << std::endl;
                         break;
-                    }
+                    } 
                     
                     std::cout << "Enter Z to go back: ";
                     std::string exit_char;

@@ -16,6 +16,6 @@ bool isvalisfullName(std::string fullname);
 bool isvalidPassword(std::string password);
 void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin, bool forceChangePassword);
 void printchangeUserInfoMenu(bool isAdmin);
-
+ 
 
 #endif

@@ -21,7 +21,7 @@ bool appendUserStatusRow(std::string & filename,
                          std::string & isGeneratedPassword, 
                          std::string & failedLogin, 
                          std::string & deleteUser, 
-                         std::string & date);
+                         std::string & date); 
 
 bool updateUserStatusRow(const std::string& filename, const std::string& userName, 
                         const std::map<std::string, std::string>& updated_values);

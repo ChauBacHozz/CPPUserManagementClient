@@ -11,7 +11,7 @@ enum class UserStatusType {
     LOCKED,
     GENERATED_PASSWORD,
     ACTIVE
-};
+}; 
 
 class UserStatus {
     private:

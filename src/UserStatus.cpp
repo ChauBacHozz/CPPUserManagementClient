@@ -14,7 +14,7 @@ UserStatus::UserStatus(const std::string& userArg,
     this->deleteUser = deletArg;
     this->Date = dateArg;
     validateStatus();
-}
+} 
 
 std::string UserStatus::getUser() const {
     return this->User;

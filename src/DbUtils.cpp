@@ -720,7 +720,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
             }
         }
     }
-}
+} 
 
 //Hàm sinh mã OTP
 // std::string generateOTP(const std::string& WalletId = "default") {

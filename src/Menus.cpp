@@ -26,6 +26,17 @@
 using namespace std;
 using json = nlohmann::json;
 
+json convertUserInfo2Json(User * currentUser) {
+    json user_info_json;
+    user_info_json["fullname"] = currentUser->fullName();
+    user_info_json["username"] = currentUser->accountName();
+    user_info_json["password"] = currentUser->password();
+    user_info_json["wallet"] = currentUser->wallet();
+    user_info_json["point"] = currentUser->point();
+    user_info_json["salt"] = currentUser->salt();
+    return user_info_json;
+}
+
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
     cout << "---------------------------------" << endl;
@@ -369,26 +380,6 @@ bool UserEditMenu(Admin * currentAdmin) {
             // cout << "Add user" << endl; 
             // /* code */
             string saveParquetFileName = "../assets/users.parquet";
-
-            // std::set<std::string> existingUsernames;
-            // std::shared_ptr<arrow::io::ReadableFile> infile;
-            // try {
-            // PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(saveParquetFileName));
-            // std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::Open(infile);
-            // //parquet::StreamReader stream(reader.get());
-            // std::string dbFullName, dbUserName, dbHashedPassword, dbSalt, dbWalletId;
-            // int64_t dbUserPoint;
-            // while (!stream.eof()) {
-            // stream >> dbFullName >> dbUserName >> dbHashedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
-            // existingUsernames.insert(dbUserName);
-            // }
-            // } catch (const arrow::Status& status) {
-            // std::cerr << "Error reading file to check usernames: " << status.ToString() << std::endl;
-            // std::cout << "Cannot proceed with user creation." << std::endl;
-            // std::cin.get();
-            // break;
-            // }
-
             cin.clear(); // Clear the input buffer
             cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore any leftover input
             User * user = enterUserInfoRegister(true, true); // Pass true for isAdmin and enterPoint
@@ -399,28 +390,9 @@ bool UserEditMenu(Admin * currentAdmin) {
                 break;
             }
 
-            std::string fullName = user->fullName();
-            std::string accountName = user->accountName();
-            std::string password = user->password();
-            std::string salt = user->salt();
-            int point = user->point();
-            std::string wallet = user->wallet();
-        
-            arrow::Status resultRegisterUser = AppendUserParquetRow(saveParquetFileName,
-                                                                    fullName,
-                                                                    accountName,
-                                                                    password,
-                                                                    salt,
-                                                                    point,
-                                                                    wallet);
-            if (!resultRegisterUser.ok()) {
-                std::cerr << "Error registering user: " << resultRegisterUser.ToString() << std::endl;
-                cout << "User registration failed. Please try again." << endl;
-                delete user; // Clean up the user object
-                cin.get(); // Wait for user input before continuing
-                break; // Exit the case if registration fails
-            }
-            
+            json user_info_json = convertUserInfo2Json(user);
+            registerUserAPI(user_info_json);
+
             std::cout << "User registered successfully!" << std::endl;
             delete user; // Clean up the user object
             cout << "Press Enter to continue..." << std::endl;
@@ -576,7 +548,7 @@ void AdminLoginMenu(Client *& currentClient) {
                     json users = user_info_table_json["usertable"];
 
                     PrintJsonTable(users);
-                    
+
 
                     std::cout << "Enter Z to go back: ";
                     std::string exit_char;
@@ -631,16 +603,7 @@ void AdminLoginMenu(Client *& currentClient) {
 
 }
 
-json convertUserInfo2Json(User * currentUser) {
-    json user_info_json;
-    user_info_json["fullname"] = currentUser->fullName();
-    user_info_json["username"] = currentUser->accountName();
-    user_info_json["password"] = currentUser->password();
-    user_info_json["wallet"] = currentUser->wallet();
-    user_info_json["point"] = currentUser->point();
-    user_info_json["salt"] = currentUser->salt();
-    return user_info_json;
-}
+
 
 void changeuserinfo(std::string& filename, User*& currentUser, bool isAdmin = false) {
     if (!currentUser) {

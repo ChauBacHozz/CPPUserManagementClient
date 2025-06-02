@@ -11,6 +11,19 @@ Admin::Admin()
 
 }
 
+std::string Admin::salt()  {
+    return this->Salt;
+}
+void Admin::setSalt( std::string &salt) {
+    this->Salt = salt;
+}
+
+std::string Admin::fullName()  {
+    return this->FullName;
+}
+void Admin::setFullName( std::string &FullName) {
+    this->FullName = FullName;
+}
 
 std::string Admin::accountName() {
     return this->AccountName;
@@ -28,38 +41,20 @@ void Admin::setPassword(std::string password) {
 }
 
 
-
-bool Admin::createUser(std::string FullName, std::string UserName, std::string UserPassword, int point) {
-    // Tạo mã hash từ toàn bộ thông tin người dùng
-    std::string userBasicInfo = FullName + UserName + UserPassword;
-    // Tạo mã hash cho userpassword
-    std::string salt = generateSaltStr();
-    std::string hashedPassword = sha256(UserPassword + salt);
-
-    std::string walletId = sha256(hashedPassword + salt);
-
-    // std::shared_ptr<arrow::io::ReadableFile> infile;
-
-    // PARQUET_ASSIGN_OR_THROW(
-    //     infile,
-    //     arrow::io::ReadableFile::Open("../assets/users.parquet"));
-  
-    //  parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
-  
-    // std::string dbFullName;
-    // std::string dbUserName;
-    // std::string dbUserPassword;
-    // std::string dbUserSalt;
-    // int64_t dbUserPoint;
-    // std::string dbWalletId;
-    std::string filename = "../assets/users.parquet";
-    arrow::Status status = AppendUserParquetRow(filename, FullName, UserName, hashedPassword, salt, point, walletId);
-
-
-
-
-    return false;
+int Admin::point()  {
+    return this->Point;
 }
+void Admin::setPoint(int point) {
+    this->Point = point;
+}
+
+std::string Admin::wallet()  {
+    return this->Wallet;
+}
+void Admin::setWallet(std::string &wallet) {
+    this->Wallet = wallet;
+}
+
 
 Admin::~Admin()
 {

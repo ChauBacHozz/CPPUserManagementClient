@@ -24,7 +24,8 @@
 #include <chrono>
 #include <arrow/api.h>
 #include <transaction_utils.h>
-
+#include "json.hpp"
+using json = nlohmann::json;
 arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arrow::Table>& existing_table) {
     // Mở file parquet
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -306,7 +307,43 @@ std::string TruncateString(const std::string& s, size_t max_len = 15) {
 //     if (first == std::string::npos) return "";
 //     return str.substr(first, last - first + 1);
 // }
+void PrintJsonTable(const json& jarray) {
+    if (!jarray.is_array() || jarray.empty()) {
+        std::cout << "No data to print.\n";
+        return;
+    }
 
+    const int col_width = 15;
+    const std::string separator = " | ";
+
+    // In header
+    const auto& first = jarray[0];
+    std::vector<std::string> keys;
+    for (auto it = first.begin(); it != first.end(); ++it) {
+        keys.push_back(it.key());
+        std::cout << std::setw(col_width) << TruncateString(it.key()) << separator;
+    }
+    std::cout << "\n";
+
+    // In dòng kẻ
+    for (size_t i = 0; i < keys.size(); ++i) {
+        std::cout << std::string(col_width, '-') << separator;
+    }
+    std::cout << "\n";
+
+    // In từng dòng dữ liệu
+    for (const auto& row : jarray) {
+        for (const auto& key : keys) {
+            if (row.contains(key)) {
+                std::string val = row[key].is_string() ? row[key].get<std::string>() : row[key].dump();
+                std::cout << std::setw(col_width) << TruncateString(val) << separator;
+            } else {
+                std::cout << std::setw(col_width) << "[N/A]" << separator;
+            }
+        }
+        std::cout << "\n";
+    }
+}
 void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int> columns_orders) {
     const int col_width = 15;
 

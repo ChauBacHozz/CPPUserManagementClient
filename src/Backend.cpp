@@ -74,3 +74,10 @@ std::string registerUserAPI(json user_info){
     std::string api_result = sendAPI(user_register_info);
     return api_result;
 }
+std::string getUserInfoAllAPI() {
+    std::string purpose = "USERINFOTABLE";
+    json user_get_info_table;
+    user_get_info_table["purpose"] = purpose;
+    std::string api_result = sendAPI(user_get_info_table);
+    return api_result;
+}

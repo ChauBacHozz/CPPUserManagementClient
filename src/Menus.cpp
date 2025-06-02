@@ -558,7 +558,6 @@ void AdminLoginMenu(Client *& currentClient) {
                 system("cls");
                 printAdminHomeMenu();
                 cin >> adminHomeMenuOption;
-                cout << "Lua chon cua ban la" << adminHomeMenuOption << endl;
     
             } while (adminHomeMenuOption < 0 || adminHomeMenuOption>4);
     
@@ -572,12 +571,13 @@ void AdminLoginMenu(Client *& currentClient) {
                 bool exit = false;
                 do
                 {
-                    arrow::Status status = printUserInfoFromDb();
-                    if (!status.ok()) {
-                        std::cerr << "Error printing user info: " << status.ToString() << std::endl;
-                        break;
-                    }
+                    std::string user_info_table = getUserInfoAllAPI();
+                    json user_info_table_json = json::parse(user_info_table);
+                    json users = user_info_table_json["usertable"];
+
+                    PrintJsonTable(users);
                     
+
                     std::cout << "Enter Z to go back: ";
                     std::string exit_char;
                     std::cin >> exit_char;

@@ -22,6 +22,16 @@
 #include <transaction_utils.h>
 using namespace std;
 
+// Forward declaration for AppendUserStatusParquetRow
+arrow::Status AppendUserStatusParquetRow(
+    const std::string& statusFile,
+    const std::string& userName,
+    const std::string& isGeneratedPassword,
+    const std::string& isFirstLogin,
+    const std::string& isLocked,
+    const std::string& lastLoginDate
+);
+
 
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
@@ -35,33 +45,24 @@ void printAdminHomeMenu() {
     cout << "Enter Your Option: ";
 }
 
-void printAdminWalletMenu() {
-    cout << "--- ADMIN WALLET MANAGE MENU ---" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "1. Check Balance" << endl;
-    cout << "2. History add point" << endl;
-    cout << "3. History transaction" << endl;
-    cout << "0. Back" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "Enter Your Option: ";
-}
-
-void printAdminEditMenu() {
-    cout << "--- ADMIN INFO EDITING MENU ---" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "1. Change name" << endl;
-    cout << "2. Change password" << endl;
-    cout << "0. Back" << endl;
-    cout << "---------------------------------" << endl;
-    cout << "Enter Your Option: ";
-}
-
 void printUserEditMenu() {
     cout << "--- ADMIN MANAGE USER MENU ---" << endl;
     cout << "---------------------------------" << endl;
     cout << "1. Add User" << endl;
     cout << "2. Add Users From CSV" << endl;
-    cout << "3. Edit User Info" << endl;
+    cout << "3. Manage User Info" << endl;
+    cout << "4. Manage User Status" << endl;
+    cout << "0. Back" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "Enter your option: ";
+}
+
+void printAdminManageUserStatusMenu() {
+    cout << "--- ADMIN MANAGE USER STATUS MENU ---" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "1. Edit GenPassword Status" << endl;
+    cout << "2. Unlock Acount" << endl;
+    cout << "3. Restore Acount" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
@@ -83,7 +84,7 @@ void printchangeUserInfoMenu(bool isAdmin) {
     cout << "---------------------------------\n";
     cout << "1. Change Full Name\n"; 
     cout << "2. Change Password\n";
-    if (isAdmin) { cout << "3. Edit Point\n"; }
+    if (isAdmin) { cout << "3. Add Point\n"; }
     cout << "0. Back\n";
     cout << "---------------------------------\n";
     cout << "Enter your choice: ";
@@ -107,7 +108,8 @@ void printUserLoginMenu() {
     cout << "\n--- USER LOGIN MENU ---\n" 
          << "---------------------------------\n"
          << "1. Information\n" 
-         << "2. E-Walelt\n" 
+         << "2. E-Walelt\n"
+         << "3. Delete Account\n"
          << "0. Back\n"
          << "---------------------------------\n"
          << "Enter your choice: ";
@@ -211,30 +213,31 @@ bool isvalidPassword(std::string password) {
     return hasUpper && hasLower && hasDigit && hasSpecial;
 }
 
-User * enterUserInfo(){
-    system("cls");
-    string fullName;
-    string userName;
-    string password;
-    int point;
+// User * enterUserInfo(){
+//     system("cls");
+//     string fullName;
+//     string userName;
+//     string password;
+//     int point;
 
-    cout << "ENTER USER INFO" << endl;
-    cout << "---------------------------" <<endl;
-    cout << "User fullname: ";
-    //cin.ignore();
-    getline(cin, fullName);
-    cout << "User username: ";
-    getline (cin, userName);
-    cout << "User password: ";
-    getline (cin, password);
-    cout << "User user-point: ";
-    cin >> point;
+//     cout << "ENTER USER INFO" << endl;
+//     cout << "---------------------------" <<endl;
+//     cout << "User fullname: ";
+//     //cin.ignore();
+//     getline(cin, fullName);
+//     cout << "User username: ";
+//     getline (cin, userName);
+//     cout << "User password: ";
+//     getline (cin, password);
+//     cout << "User user-point: ";
+//     cin >> point;
 
 
-    User * user = new User();
-    return user;    
-}
+//     User * user = new User();
+//     return user;    
+// }
 
+//Hàm khai báo tạo user (gọi được ở cả menu Admin và user)
 User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
     system("cls"); // Clear the console screen
     string FullName;
@@ -249,19 +252,23 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
 
     cout << "ENTER USER INFO" << endl;
     cout << "---------------------------" <<endl;
-    do {
-    cout << "User FullName (or 'z' to return to Menu): ";
-    getline(cin, FullName);
-    FullName = trim(FullName);
-    if (FullName == "z" || FullName == "Z") {
-        cout << "User creation cancelled." << endl;
-        cout << "Return to menu..." << endl;
-        return nullptr; // Return to menu if user enters 'z'
-    }
-    if(!isvalisfullName(FullName)) {
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore any leftover input
+        
+    while (true) {
+        cout << "User FullName (or 'z' to return to Menu): ";
+        getline(cin, FullName);
+        FullName = trim(FullName);
+        if (FullName == "z" || FullName == "Z") {
+            cout << "User creation cancelled." << endl;
+            cout << "Return to menu..." << endl;
+            return nullptr; // Return to menu if user enters 'z'
+        }
+        if(!isvalisfullName(FullName)) {
         cout << "Invalid full name. Please try again." << endl;
+        continue; // Prompt for full name again if invalid
+        }
+        break; // Exit the loop if the full name is valid
     }
-    } while (!isvalisfullName(FullName));
 
     while (true){
         cout << "User username (or 'z' to return to Menu): ";
@@ -281,7 +288,7 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
         }  
     }
 
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
+    //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
     
     bool isGeneratedPassword = false; // Flag to indicate if the password is generated
     if (isAdmin) {
@@ -367,6 +374,28 @@ if(!user) {
     cout << "Error creating user object." << endl;
     return nullptr; // Exit if user object creation fails
 }
+//ghi trạng thái generated password
+if(isGeneratedPassword != false) {
+    // Append user status to the parquet file
+    // Assuming the function appendUserStatusRow is defined elsewhere
+    // and it appends a row to the user status parquet file
+    cout << "Appending user status to parquet file..." << endl;
+    // Define the status file and default values
+std::string statusFile = "../assets/userstatus.parquet";
+std::string defaultStatus = "false";
+std::string defaultDate = "N/A"; // Hoặc có thể sử dụng ngày hiện tại
+std::string isGenStr = isGeneratedPassword ? "true" : "false";
+if(!appendUserStatusRow(statusFile, 
+                            userName, 
+                            isGenStr, 
+                            defaultStatus, 
+                            defaultStatus, 
+                            defaultDate)) {
+    cout << "Error appending user status to parquet file!" << endl;
+    }
+}
+cout << "Debug: User object created successfully!" << endl;
+// Return the created user object
 return user;
 }
 
@@ -510,7 +539,7 @@ bool UserEditMenu(Admin * currentAdmin) {
                     if (userName == dbUserName) {
                         userfound = true; 
                         currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
-                        cout << "User edit: " << currentUser->accountName() << endl;
+                        cout << "DEBUG: User found: " << currentUser->accountName() << endl;
                         break; 
                     }
                 }
@@ -521,30 +550,69 @@ bool UserEditMenu(Admin * currentAdmin) {
                     break;
                 }
                 if (!currentUser) {
-                    cout << "User: " << currentUser << " not found!" << endl;
+                    cout << "User " << currentUser << " not found!" << endl;
                     cout << "Please check the user name and try again." << endl;
                     cin.get();
                     break; // Skip to the next iteration of the loop
                 }
-                                
-                map<string, string> pending_updates; // Create a map to hold pending updates
-                
-                changeuserinfo(filename, currentUser, pending_updates, true); // Call the function to change user info
-                if (!pending_updates.empty()) {
-                arrow::Status status = updateUserInfo(filename, currentUser, pending_updates); // Update the user info in the database
-                if (!status.ok()) {
-                    cout << "Error updating user info: " << status.ToString() << endl;
-                    //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user info");
-                    cin.get(); // Wait for user input before continuing
-                    return false; // Exit if the update fails
-                }
-                cout << "User info updated successfully!" << endl;
-                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
-                }
-                //cout << "DEBUG: Returned from changeuserinfo" << endl;
+                cout << "DEBUG: Current user found: " << currentUser->accountName() << ", calling changeuserinfo" << endl;
+                changeuserinfo(filename, currentUser, true, false); // Pass true for isAdmin and false for forceChangePassword
+                cout << "DEBUG: Returned from changeuserinfo" << endl;
                 cout << "User info changed successfully!" << endl;
-                cin.get(); // Wait for user input before continuing
+                cin.get(); // Wait for user input before continuing 
             break;
+        }
+        case 4: {
+            string fileStatus = "../asset/userstatus.parquet";
+            string user;
+            cout << "Enter user name for edit (or 'z' to return Menu): ";
+                cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+                getline (cin, user);
+                user = trim(user);
+                if (user == "z" || user == "Z") {
+                    std::cout << "Returning to Menu..." << std::endl;
+                    string currentUser = nullptr;
+                    break;
+                }
+                std::shared_ptr<arrow::io::ReadableFile> infileStatus;
+                try {
+                    PARQUET_ASSIGN_OR_THROW(infileStatus, arrow::io::ReadableFile::Open(fileStatus));
+                } catch (const arrow::Status& status) {
+                    std::cerr << "Error opening file: " << status.ToString() << std::endl;
+                    cout << "Returning to Menu..." << endl;
+                    std::cin.get(); // Wait for user input before continuing
+                    break;        
+                }
+
+                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infileStatus)};
+                //parquet::StreamReader stream(reader.get());
+
+                std::string dbUser, dbIsGeneratedPassword, dbIsFirstLogin, dbIsLocked, dbLastLoginDate;
+                bool userFound = false;
+
+                while (!stream.eof()) {
+                    stream >> dbUser >> dbIsGeneratedPassword >> dbIsFirstLogin >> dbIsLocked >> dbLastLoginDate >> parquet::EndRow;
+                    if (user == dbUser) {
+                        userFound = true;
+                        cout << "User Status Info:" << endl;
+                        cout << "UserName: " << dbUser << endl;
+                        cout << "isGeneratedPassword: " << dbIsGeneratedPassword << endl;
+                        cout << "isFirstLogin: " << dbIsFirstLogin << endl;
+                        cout << "isLocked: " << dbIsLocked << endl;
+                        cout << "LastLoginDate: " << dbLastLoginDate << endl;
+                        break;
+                    }
+                }
+                
+                if (!userFound) {
+                    cout << "User status not found for: " << user << endl;
+                    cin.get();
+                    break;
+                }
+                cout << "Press Enter to continue..." << endl;
+                cin.get();
+                
+                
         }
         default:
             break;
@@ -636,46 +704,16 @@ void AdminLoginMenu(Client *& currentClient) {
                 // currentAdmin->createUser(user1->fullname(), user1->accountName(), user1->password(), user1->point());
                 break;
             }
-            case 3: { //Wallet Management
+    
+            case 3:
                 system("cls");
-                
-                bool exit = false;
-                do { 
-                    
-                    printAdminWalletMenu();
-                 cout << "Admin management" << endl; 
-                /* gọi hàm tính tổng ví của các user trong file user.parquet và so sanh với piont của admin trong file admin.parquet */
-                            
-                    std::cout << "Enter Z to go back: ";
-                    std::string exit_char;
-                    std::cin >> exit_char;
-                    if (exit_char == "Z" || exit_char == "z") {
-                        exit = true;
-                    }
-                    /* code */
-                } while (!exit);             
+                cout << "Admin management" << endl; 
+                /* code */
                 break;
-            }
-
-            case 4:{
-                system("cls");
-                
-                bool exit = false;
-                do { 
-                    
-                    printAdminEditMenu();
-                 cout << "Admin Info Editing" << endl; 
-                                            
-                    std::cout << "Enter Z to go back: ";
-                    std::string exit_char;
-                    std::cin >> exit_char;
-                    if (exit_char == "Z" || exit_char == "z") {
-                        exit = true;
-                    }
-                    /* code */
-                } while (!exit);             
+            case 4:
+                cout << "Admin management" << endl; 
+                /* code */
                 break;
-            }
             
             default:
                 break;
@@ -692,23 +730,22 @@ void AdminLoginMenu(Client *& currentClient) {
 
 }
 
-/// @brief 
-/// @param filename 
-/// @param currentUser 
-/// @param isAdmin 
-/// @return 
-void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::string, std::string>& pending_updates, bool isAdmin) {
+//Hàm thay đổi thông tin User có thể gọi được ở cả User và Admin
+void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = false, bool forceChangePassword = false) {
     
     if(!currentUser) {
-        cout << "Error: Current user is null!" << endl;
-        return; // Exit if currentUser is null
+        std::cerr << "Error: Current user is null!" << std::endl;
+        return;
     }
-  
+    
     //cout << "DEBUG: Entering changeuserinfo function" << endl;
     while (true){
+        int subChoice;
+        if (forceChangePassword) {
+            subChoice = 2; // Force change password
+        } else {
         printchangeUserInfoMenu(isAdmin);
         //cout << "Debug: Entering changeuserinfo function" << endl;
-        int subChoice;
         //cin >> subChoice;
         //cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
         if (!(cin >> subChoice)) {
@@ -718,6 +755,7 @@ void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::st
             continue; // Skip to the next iteration of the loop
         }
         cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
+        }
         if(subChoice==1){
             string newFullName;
             cout << "Enter new full Name (or 'z' to return to Menu): ";
@@ -739,27 +777,65 @@ void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::st
             
             //Xử lý OTP
             if(!isAdmin) {
-                if(!verifyOTPForUser(currentUser)) {
-                cout << "OTP verification failed. User info change cancelled!" << std::endl;
-                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
-                continue; // Exit if OTP verification fails
+            string secretKey = currentUser->salt(); // Use the user's wallet as the secret key
+            string transactionID = generateTransactionID(); // Use the user's account name as the transaction ID
+            auto now = std::chrono::system_clock::now();
+            long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+            long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
+            if(secretKey.empty() || transactionID.empty()) {
+                std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
+                return; // Exit if secret key or transaction ID is empty
+            }
+            // Generate and verify OTP
+            cout << "Generating OTP for user: " << currentUser->accountName() << std::endl;
+            string otp = generateOTP(secretKey, transactionID);
+            cout << "OTP generated: " << otp << std::endl;
+            cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+            cout << "Please enter the OTP for confirmation!" << std::endl;
+            int otpAttempts = 0;
+            const int maxOtpAttempts = 3;
+            bool otpVerified = false;
+            string userOtp;
+            while (otpAttempts < maxOtpAttempts) {
+                std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
+                getline(std::cin, userOtp);
+                userOtp = trim(userOtp);
+                now = std::chrono::system_clock::now();
+                long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
+                if (verifyOTP(userOtp, secretKey, transactionID)) {
+                    otpVerified = true;
+                    break;
+                } else {
+                    otpAttempts++;
+                    if (otpAttempts == maxOtpAttempts) {
+                        std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
+                        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
+                        //return arrow::Status::~Status("You entered incorrect OTP 3 times. User info change cancelled!"); // Exit if OTP verification fails
+                        continue;
+                    }
+                if(currentTimeSeconds > initialTimeStep) {
+                    otp = generateOTP(secretKey, transactionID); // Regenerate OTP if current time step has changed
+                    cout << "OTP has expried. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
                 }
             }
+            std::cout << "Invalid OTP. Please try again." << std::endl;
+            }
+        }
         
-        pending_updates["Fullname"] = newFullName; // Add the updated full name to the pending updates map
         currentUser->setFullName(newFullName); // Update the full name in the User object
-        // map<string, string> updated_values = {
-        //     {"FullName", newFullName} // Prepare the updated values for the database
-        // };
+            std::map<std::string, std::string> updated_values={
+                {"Fullname", currentUser->fullName()}
+        };
 
-        // arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
-        //     if (!status.ok()) {
-        //         cout << "Error updating user info: " << status.ToString() << endl;
-        //         logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user Full Name");
-        //         continue;
-        //     }
-        // cout << "Full name changed successfully!" << endl;
-        // logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
+        arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
+            if (!status.ok()) {
+                cout << "Error updating user info: " << status.ToString() << endl;
+                logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user Full Name");
+                continue;
+            }
+        cout << "Full name changed successfully!" << endl;
+        //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
         } else if(subChoice==2){
             string newPassword;
             cout << "Enter new password (or 'z' to return to Menu): ";
@@ -774,22 +850,83 @@ void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::st
                 cout << "Invalid password. Please try again." << endl;
                 continue; // Skip to the next iteration of the loop
             }
-            cout << "New password entered: " << newPassword << endl;
-            
+            if(!newPassword.empty()){
+                string salt = currentUser->salt();
+                string hashedPassword = sha256(newPassword + salt);
+                currentUser->setPassword(hashedPassword);
+                map<string, string> updated_values={
+                    {"Password", hashedPassword},        
+                    {"Salt", salt}
+                };
+
+            //Xử lý OTP
             if(!isAdmin) {
-                if(!verifyOTPForUser(currentUser)) {
-                    cout << "OTP verification failed. User info change cancelled!" << std::endl;
-                    logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
-                    continue; // Exit if OTP verification fails
+            string secretKey = currentUser->salt(); // Use the user's wallet as the secret key
+            string transactionID = generateTransactionID(); // Use the user's account name as the transaction ID
+            auto now = std::chrono::system_clock::now();
+            long long currentTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+            long long initialTimeStep = currentTimeSeconds / OTP_VALIDITY_SECONDS;
+            if(secretKey.empty() || transactionID.empty()) {
+                std::cerr << "Error: Secret key or transaction ID is empty!" << std::endl;
+                return; // Exit if secret key or transaction ID is empty
+            }
+            // Generate and verify OTP
+            cout << "Generating OTP for user: " << currentUser->accountName() << std::endl;
+            string otp = generateOTP(secretKey, transactionID);
+            cout << "OTP generated: " << otp << std::endl;
+            cout << "Verifying OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+            cout << "Please enter the OTP for confirmation!" << std::endl;
+            int otpAttempts = 0;
+            const int maxOtpAttempts = 3;
+            bool otpVerified = false;
+            string userOtp;
+            while (otpAttempts < maxOtpAttempts) {
+                std::cout << "Enter the OTP to confirm (Attempts remaining: " << (otpAttempts + 1) << "/" << maxOtpAttempts << "): ";
+                getline(std::cin, userOtp);
+                userOtp = trim(userOtp);
+                now = std::chrono::system_clock::now();
+                long long curruntTimeSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now).time_since_epoch().count();
+                long long initialTimeStep = curruntTimeSeconds / OTP_VALIDITY_SECONDS;
+                if (verifyOTP(userOtp, secretKey, transactionID)) {
+                    otpVerified = true;
+                    break;
+                } else {
+                    otpAttempts++;
+                    if (otpAttempts == maxOtpAttempts) {
+                        std::cout << "You entered incorrect OTP 3 times. User info change cancelled!" << std::endl;
+                        logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "OTP verification failed");
+                        //return arrow::Status::~Status("You entered incorrect OTP 3 times. User info change cancelled!"); // Exit if OTP verification fails
+                        continue;
+                    }
+                if(currentTimeSeconds > initialTimeStep) {
+                    otp = generateOTP(secretKey, transactionID); // Regenerate OTP if current time step has changed
+                    cout << "OTP has expried. New OTP: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
                 }
             }
-
-            string salt = currentUser->salt();
-            string hashedPassword = sha256(newPassword + salt);
-            pending_updates["Salt"] = salt; // Add the salt to the pending updates map
-            pending_updates["Password"] = hashedPassword; // Add the updated password to the pending updates map
-            currentUser->setPassword(hashedPassword);
-
+            std::cout << "Invalid OTP. Please try again." << std::endl;
+            }
+        }
+            
+        arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
+            if (!status.ok()) {
+                    cout << "Error updating user info: " << status.ToString() << endl;
+                    logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user password");
+                    continue;
+                }
+                cout << "Password changed successfully!" << endl;
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Password changed successfully");
+                // --- CẬP NHẬT isGeneratedPassword về "false" ---
+                if (forceChangePassword) {
+                std::string statusFile = "../assets/userstatus.parquet";
+                std::map<std::string, std::string> status_update = {{"isGeneratedPassword", "false"}};
+                updateUserStatusRow(statusFile, currentUser->accountName(), status_update);
+                cout << "User status updated: isGeneratedPassword = false" << endl;
+                break; // Thoát khỏi vòng lặp đổi mật khẩu bắt buộc
+            }
+            }
+            else{
+                cout << "Password cannot be empty!" << endl;
+            }
         } else if(subChoice == 3 && isAdmin) {
             int newpoints;
             cout << "Enter points (The first add points max 100 point): " << endl;
@@ -800,20 +937,32 @@ void changeuserinfo(std::string& filename, User *& currentUser, std::map<std::st
                 cout << "Invalid point. Setting to 0" << endl;
                 newpoints = 0; // Exit if point is invalid
             }
-            pending_updates["Points"] = newpoints; // Add the updated points to the pending updates map
             currentUser->setPoint(newpoints); // Update the points in the User object
+            map<string, string> updated_values={
+                {"Points", std::to_string(currentUser->point())}
+            };
+            arrow::Status status = updateUserInfo(filename, currentUser, updated_values); // Update the user info in the database
+            if (!status.ok()) {
+                cout << "Error updating user info: " << status.ToString() << endl;
+                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user points"); 
+                continue;
+            }
+            cout << "Points changed successfully!" << endl;
+            //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Points changed successfully");
+            break; // Exit the loop to go back to the home menu
         }
         
         else if(subChoice==0){
             cout << "Back to main menu" << endl;
-            //cout << "DEBUG: End of changeuserinfo" << endl;
-            return; // Exit the loop to go back to the home menu
+            cout << "DEBUG: End of changeuserinfo" << endl;
+            break; // Exit the loop to go back to the main menu
         } else {
             cout << "Invalid choice. Please try again." << endl;
         }
     }
 }
 
+//Hàm kiểm tra năm nhuận
 bool isLeapYear(int year) {
     // Check if the year is a leap year
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
@@ -825,6 +974,7 @@ bool isValidDateTime(const std::string& dateTime) {
     return std::regex_match(dateTime, dateTimePattern);
 }
 
+//Hàm chuyển định dạng ngày tháng năm thành DD-MM-YYYY
 std::string convertDateTime(const std::string& dateTime, bool isEndOfDay = false) {
     if(dateTime.empty()) return "";
     std::regex dateTimePattern(R"(\d{2}/\d{2}/\d{4})");
@@ -1067,6 +1217,7 @@ void eWallet(User *& currentUser) {
     }
 }
 
+// Hàm đăng nhập vào User Home Menu
 void UserLoginMenu(User *& currentUser) {
     if (!currentUser->check_consumer_thread_running()) {
         currentUser->activateConsumerThread();
@@ -1083,29 +1234,39 @@ void UserLoginMenu(User *& currentUser) {
         }
         
         if(choice == 1){
-           printUserInfoFromDb(currentUser);
-           std::string filename = "../assets/users.parquet";
-            map<string, string> pending_updates; // Create a map to hold pending updates
+           
+            printUserInfoFromDb(currentUser);
+           std::string filename = "../assets/users.parquet"; 
            //cout << "DEBUG: End of changeuserinfo" << endl;
-           changeuserinfo(filename, currentUser, pending_updates, false); // Call the function to change user info
-           if (!pending_updates.empty()) {
-                arrow::Status status = updateUserInfo(filename, currentUser, pending_updates); // Update the user info in the database
-                if (!status.ok()) {
-                    cout << "Error updating user info: " << status.ToString() << endl;
-                    logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, false, "Failed to update user info");
-                    continue; // Skip to the next iteration of the loop
-                }
-                cout << "User info updated successfully!" << endl;
-                //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "User info updated successfully");
-            }
-           //cout << "DEBUG: End of changeuserinfo" << endl;
+           changeuserinfo(filename, currentUser, false, false); // Call the function to change user info
+           //cout << "DEBUG: End of changeuserinfo" << endl
+        
         } else if(choice == 2){
             eWallet(currentUser);
+        } else if(choice == 3){
+            string confirm;
+            cout << "Are you sure to delete your account? (Y/N):";
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            getline(cin, confirm);
+            confirm = trim(confirm);
+            if(confirm == "Y" || confirm == "y") {
+            string fileStatus = "../assets/userstatus.parquet";
+            map<string, string> update_values = {{"deleteUser", "true"}};
+            if(updateUserStatusRow(fileStatus, currentUser->accountName(), update_values)) {
+                cout << "Account was deleted!" << endl;
+            } else {
+                cout << "Account was not deleted, Please contac Admin!" << endl;
+
+            }
+            cout << "Press any key to return Menu.....";
+            cin.get();
+            break; // Exit the loop to log out
         } else if(choice == 0){
             cout << "Logging out..." << endl;
             break; // Exit the loop to log out
         } else {
             cout << "Invalid choice. Please try again." << endl;
+            }
         }
     }
 }
@@ -1143,6 +1304,7 @@ void userHomeMenu(Client *& currentClient) {
             int point = currentUser->point();
             std::string wallet = currentUser->wallet();
             arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
+            cout << "DEBUG: Status after AppendUserParquetRow: " << status.ToString() << endl;
             if(!status.ok()) {
                 cout << "Error registering user: " << status.ToString() << endl;
                 return;

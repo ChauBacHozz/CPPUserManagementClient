@@ -35,6 +35,27 @@ void printAdminHomeMenu() {
     cout << "Enter Your Option: ";
 }
 
+void printAdminWalletMenu() {
+    cout << "--- ADMIN WALLET MANAGE MENU ---" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "1. Check Balance" << endl;
+    cout << "2. History add point" << endl;
+    cout << "3. History transaction" << endl;
+    cout << "0. Back" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "Enter Your Option: ";
+}
+
+void printAdminEditMenu() {
+    cout << "--- ADMIN INFO EDITING MENU ---" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "1. Change name" << endl;
+    cout << "2. Change password" << endl;
+    cout << "0. Back" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "Enter Your Option: ";
+}
+
 void printUserEditMenu() {
     cout << "--- ADMIN MANAGE USER MENU ---" << endl;
     cout << "---------------------------------" << endl;
@@ -615,16 +636,46 @@ void AdminLoginMenu(Client *& currentClient) {
                 // currentAdmin->createUser(user1->fullname(), user1->accountName(), user1->password(), user1->point());
                 break;
             }
-    
-            case 3:
+            case 3: { //Wallet Management
                 system("cls");
-                cout << "Admin management" << endl; 
-                /* code */
+                
+                bool exit = false;
+                do { 
+                    
+                    printAdminWalletMenu();
+                 cout << "Admin management" << endl; 
+                /* gọi hàm tính tổng ví của các user trong file user.parquet và so sanh với piont của admin trong file admin.parquet */
+                            
+                    std::cout << "Enter Z to go back: ";
+                    std::string exit_char;
+                    std::cin >> exit_char;
+                    if (exit_char == "Z" || exit_char == "z") {
+                        exit = true;
+                    }
+                    /* code */
+                } while (!exit);             
                 break;
-            case 4:
-                cout << "Admin management" << endl; 
-                /* code */
+            }
+
+            case 4:{
+                system("cls");
+                
+                bool exit = false;
+                do { 
+                    
+                    printAdminEditMenu();
+                 cout << "Admin Info Editing" << endl; 
+                                            
+                    std::cout << "Enter Z to go back: ";
+                    std::string exit_char;
+                    std::cin >> exit_char;
+                    if (exit_char == "Z" || exit_char == "z") {
+                        exit = true;
+                    }
+                    /* code */
+                } while (!exit);             
                 break;
+            }
             
             default:
                 break;

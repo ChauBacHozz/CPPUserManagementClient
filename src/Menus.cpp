@@ -1219,9 +1219,9 @@ void eWallet(User *& currentUser) {
 
 // Hàm đăng nhập vào User Home Menu
 void UserLoginMenu(User *& currentUser) {
-    if (!currentUser->check_consumer_thread_running()) {
-        currentUser->activateConsumerThread();
-    }
+    // if (!currentUser->check_consumer_thread_running()) {
+    //     currentUser->activateConsumerThread();
+    // }
     while (true){
         int choice;
         cout << "\nUser: " << currentUser->accountName() << endl;

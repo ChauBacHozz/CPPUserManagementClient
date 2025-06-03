@@ -26,16 +26,16 @@
 using namespace std;
 using json = nlohmann::json;
 
-json convertUserInfo2Json(User * currentUser) {
-    json user_info_json;
-    user_info_json["fullname"] = currentUser->fullName();
-    user_info_json["username"] = currentUser->accountName();
-    user_info_json["password"] = currentUser->password();
-    user_info_json["wallet"] = currentUser->wallet();
-    user_info_json["point"] = currentUser->point();
-    user_info_json["salt"] = currentUser->salt();
-    return user_info_json;
-}
+// json convertUserInfo2Json(User * currentUser) {
+//     json user_info_json;
+//     user_info_json["fullname"] = currentUser->fullName();
+//     user_info_json["username"] = currentUser->accountName();
+//     user_info_json["password"] = currentUser->password();
+//     user_info_json["wallet"] = currentUser->wallet();
+//     user_info_json["point"] = currentUser->point();
+//     user_info_json["salt"] = currentUser->salt();
+//     return user_info_json;
+// }
 
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
@@ -998,17 +998,17 @@ void listTransactions(User* currentUser = nullptr,
 }
 
 arrow::Status transferPointPage(User *& currentUser) {
-    std::string filename = "../assets/users.parquet";
+    // std::string filename = "../assets/users.parquet";
     // Kiểm tra đầu vào
     if(!currentUser) {
         std::cerr << "Error: User is null!" << std::endl;
         return arrow::Status::Invalid("User is null");
     }
 
-    if(!std::filesystem::exists(filename)) {
-        std::cerr << "Error: File does not exist!" << std::endl;
-        return arrow::Status::Invalid("File does not exist");
-    }
+    // if(!std::filesystem::exists(filename)) {
+    //     std::cerr << "Error: File does not exist!" << std::endl;
+    //     return arrow::Status::Invalid("File does not exist");
+    // }
     
     std::string receiverWalletId;
     std::string receiverFullName;
@@ -1118,72 +1118,39 @@ arrow::Status transferPointPage(User *& currentUser) {
         // Cập nhật điểm người gửi qua API
         json user_info = convertUserInfo2Json(currentUser);
         std::string update_sender_point = senderUpdateWalletAPI(user_info, transferPoint);
-        std::cout << update_sender_point << std::endl;
+        json update_sender_point_json = json::parse(update_sender_point);
+        if (update_sender_point_json["status"]) {
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            std::stringstream ss;
+            ss << std::put_time(std::localtime(&now_c), "%d-%m-%Y %H:%M:%S");
+            json transfer_msg = {
+                {"Purpose", "SENDPOINT"},
+                {"Sender wallet", currentUser->wallet()},
+                {"Sender username", currentUser->accountName()},
+                {"Time", ss.str()},
+                {"Point", transferPoint},
+                {"UID", generateUniqueId()}
+            };
+    
+            currentUser->sendMessageToKafka(transfer_msg.dump(), receiverWalletId);
+            currentUser->setPoint(currentUser->point() - transferPoint);
+            // // Ghi log giao dịch
+            std::cout << "Transaction successful! " << transferPoint << " points transferred to " << receiverFullName << "." << std::endl;
+            logTransaction(currentUser->wallet(), 
+                            currentUser->accountName(), 
+                            currentUser->fullName(), 
+                            receiverWalletId, 
+                            receiverUserName, 
+                            receiverFullName, 
+                            transferPoint, true);
+            break;
+        } else {
+            std::cout << "Error while transaction. Check your connection" << std::endl;
+        
+        }
 
-        // if (!status.ok()) {
-        //     std::cerr << "Error updating sender's points: " << status.ToString() << std::endl;
-        //     logTransaction(currentUser->wallet(), 
-        //                     currentUser->accountName(), 
-        //                     currentUser->fullName(), 
-        //                     receiverWalletId, 
-        //                     receiverUserName, 
-        //                     receiverFullName, 
-        //                     transferPoint, false);
-        //     return arrow::Status::IOError("Failed to update sender's points");
-        // }
 
-        // Create json message for producer
-        auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&now_c), "%d-%m-%Y %H:%M:%S");
-        json transfer_msg = {
-            {"Sender wallet", currentUser->wallet()},
-            {"Sender username", currentUser->accountName()},
-            {"Time", ss.str()},
-            {"Point", std::to_string(transferPoint)},
-            {"UID", generateUniqueId()}
-        };
-
-        currentUser->sendMessageToKafka(transfer_msg.dump(), receiverWalletId);
-
-        // // Convert map to json
-        // std::string transfer_msg_json = map_to_json(transfer_msg);
-        // // Send from producer to broker
-        // currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
-
-        // // câp nhật điểm cho người nhận
-        // User receiver(receiverFullName, receiverUserName, "", receiverPoints, "", receiverWalletId);
-        // std::map<std::string, std::string> receiverUpdatedValues = {
-        //     {"Points", std::to_string(receiverPoints + transferPoint)}
-        // };
-        // User* receiverPtr = &receiver;
-        // status = updateUserInfo(filename, receiverPtr, receiverUpdatedValues, true);
-        // if (!status.ok()) {
-        //     std::cerr << "Error updating receiver's points: " << status.ToString() << std::endl;
-        //     logTransaction(currentUser->wallet(), 
-        //                     currentUser->accountName(), 
-        //                     currentUser->fullName(), 
-        //                     receiverWalletId, 
-        //                     receiverUserName, 
-        //                     receiverFullName, 
-        //                     transferPoint, false);
-        //     // std::remove(tempFilename.c_str());
-        //     return arrow::Status::IOError("Failed to update receiver's points");
-        // }
-
-        // //cập nhật điểm trong đối tượng currentUser
-        // currentUser->setPoint(currentUser->point() - transferPoint);
-        // // Ghi log giao dịch
-        // std::cout << "Transaction successful! " << transferPoint << " points transferred to " << receiverFullName << "." << std::endl;
-        // logTransaction(currentUser->wallet(), 
-        //                 currentUser->accountName(), 
-        //                 currentUser->fullName(), 
-        //                 receiverWalletId, 
-        //                 receiverUserName, 
-        //                 receiverFullName, 
-        //                 transferPoint, true);
-        break;
     }
     return arrow::Status::OK();
 }

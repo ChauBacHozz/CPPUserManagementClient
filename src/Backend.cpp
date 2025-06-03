@@ -110,3 +110,13 @@ std::string senderUpdateWalletAPI(json user_info, int point) {
     std::string api_result = sendAPI(updatesenderwallet);
     return api_result;
 }
+
+std::string receiverUpdateWalletAPI(json user_info, int point) {
+    std::string purpose = "UPDATERECEIVERWALLET";
+    json updatesenderwallet;
+    updatesenderwallet["purpose"] = purpose;
+    updatesenderwallet["point"] = point;
+    updatesenderwallet["user"] = user_info;
+    std::string api_result = sendAPI(updatesenderwallet);
+    return api_result;
+}

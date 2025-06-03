@@ -10,4 +10,5 @@ std::string getUserInfoAllAPI();
 std::string searchUserAPI(std::string userName);
 std::string searchWalletAPI(std::string receiver_walletId, std::string receiver_fullname);
 std::string senderUpdateWalletAPI(json user_info, int point);
+std::string receiverUpdateWalletAPI(json user_info, int point);
 

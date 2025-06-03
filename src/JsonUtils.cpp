@@ -1,9 +1,13 @@
 #include <iostream>
 #include <string>
 #include "JsonUtils.h"
+#include "User.h"
 #include <map>
 #include <sstream>
 #include <algorithm>
+
+#include "json.hpp"
+using json = nlohmann::json;
 std::string escape_json(const std::string& s) {
     std::ostringstream o;
     for (auto c : s) {
@@ -75,4 +79,15 @@ std::map<std::string, std::string> parse_simple_json(const std::string& input) {
     }
 
     return result;
+}
+
+json convertUserInfo2Json(User * currentUser) {
+    json user_info_json;
+    user_info_json["fullname"] = currentUser->fullName();
+    user_info_json["username"] = currentUser->accountName();
+    user_info_json["password"] = currentUser->password();
+    user_info_json["wallet"] = currentUser->wallet();
+    user_info_json["point"] = currentUser->point();
+    user_info_json["salt"] = currentUser->salt();
+    return user_info_json;
 }

@@ -2,8 +2,11 @@
 #include <string>
 #include <iostream>
 #include <thread>
+#include "JsonUtils.h"
 #include <librdkafka/rdkafka.h>
-
+#include "json.hpp"
+#include "Backend.h"
+using json = nlohmann::json;
 void User::receiveMessageFromKafka(std::string topic) {
     // Đăng ký topic
     rd_kafka_poll_set_consumer(this->consumer);
@@ -28,7 +31,21 @@ void User::receiveMessageFromKafka(std::string topic) {
             }
         } else {
             std::string payload((char*)msg->payload, msg->len);
-            std::cout << "Received message: " << payload << std::endl;
+            json receive_data = json::parse(payload);
+            if (receive_data["Purpose"] == "SENDPOINT") {
+                int point = receive_data["Point"];
+                // Cộng điểm do user
+                std::cout << receive_data << std::endl;
+                json user_info = convertUserInfo2Json(this);
+                std::string updatewallet_result= receiverUpdateWalletAPI(user_info, point);
+                json updatewallet_result_json = json::parse(updatewallet_result);
+                if (updatewallet_result_json["status"]) {
+                    // Cập nhật điểm trên user này
+                    this->setPoint(this->point() + point);
+                    std::cout << "Update +" << point << std::endl;
+
+                }
+            }
         }
         rd_kafka_message_destroy(msg);
     }

@@ -90,3 +90,23 @@ std::string searchUserAPI(std::string userName) {
     std::string api_result = sendAPI(printUserEditMenu);
     return api_result;
 }
+
+std::string searchWalletAPI(std::string receiver_walletId, std::string receiver_fullname) {
+    std::string purpose = "USERWALLETSEARCH";
+    json walletsearch;
+    walletsearch["purpose"] = purpose;
+    walletsearch["receiver_wallet_id"] = receiver_walletId;
+    walletsearch["receiver_fullname"] = receiver_fullname;
+    std::string api_result = sendAPI(walletsearch);
+    return api_result;
+}
+
+std::string senderUpdateWalletAPI(json user_info, int point) {
+    std::string purpose = "UPDATESENDERWALLET";
+    json updatesenderwallet;
+    updatesenderwallet["purpose"] = purpose;
+    updatesenderwallet["point"] = point;
+    updatesenderwallet["user"] = user_info;
+    std::string api_result = sendAPI(updatesenderwallet);
+    return api_result;
+}

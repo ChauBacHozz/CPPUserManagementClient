@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <chrono>
 
 std::string hashStringToHex(const std::string& input) {
     std::hash<std::string> hasher;
@@ -43,4 +44,20 @@ std::string sha256(const std::string& input) {
         ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
     }
     return ss.str();    
+}
+
+std::string generateUniqueId() {
+    // Lấy timestamp (đơn vị microseconds)
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
+
+    // Thêm phần random nhỏ để tránh trùng nếu gọi liên tục
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1000, 9999); // 4 chữ số random
+
+    std::ostringstream oss;
+    oss << "UID_" << micros << "_" << dis(gen);
+    return oss.str();
 }

@@ -6,6 +6,7 @@
 std::string hashStringToHex(const std::string& input);
 std::string generateSaltStr(int length = 16);
 std::string sha256(const std::string& input);
+std::string generateUniqueId();
 
 
 

@@ -660,7 +660,7 @@ arrow::Status updateUserInfo(const std::string& filename,
     // Tìm hàng cần cập nhật
     int64_t rowToUpdate = -1;
     if(rowToUpdate == -1) {
-    ARROW_RETURN_NOT_OK(findUserrow(table, user->accountName(), user->wallet(), rowToUpdate));
+        ARROW_RETURN_NOT_OK(findUserrow(table, user->accountName(), user->wallet(), rowToUpdate));
     }
     std::cout << "Found user at row: " << rowToUpdate << std::endl;
 
@@ -1017,6 +1017,7 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
 
         
         // câp nhật điểm cho người gửi
+        // Sửa
         std::map<std::string, std::string> senderUpdatedValues = {
             {"Points", std::to_string(currentUser->point() - transferPoint)}
         };

@@ -461,12 +461,10 @@ bool UserEditMenu(Admin * currentAdmin) {
                                         user_json["salt"].get<std::string>(),
                                         user_json["wallet"].get<std::string>());
                     changeuserinfo(filename, user, true);
+                    cout << "User info changed successfully!" << endl;
                 } else {
                     cout << "DEBUG: Current user not found: " << userName << endl;
                 }
-                // changeuserinfo(filename, currentUser, true);
-                // cout << "DEBUG: Returned from changeuserinfo" << endl;
-                // cout << "User info changed successfully!" << endl;
                 cin.get(); // Wait for user input before continuing
             break;
         }
@@ -999,6 +997,197 @@ void listTransactions(User* currentUser = nullptr,
     }
 }
 
+arrow::Status transferPointPage(User *& currentUser) {
+    std::string filename = "../assets/users.parquet";
+    // Kiểm tra đầu vào
+    if(!currentUser) {
+        std::cerr << "Error: User is null!" << std::endl;
+        return arrow::Status::Invalid("User is null");
+    }
+
+    if(!std::filesystem::exists(filename)) {
+        std::cerr << "Error: File does not exist!" << std::endl;
+        return arrow::Status::Invalid("File does not exist");
+    }
+    
+    std::string receiverWalletId;
+    std::string receiverFullName;
+    std::string receiverUserName;
+    int64_t receiverPoints;
+    int receiverRow;
+    int64_t transferPoint = 0;
+    
+    while (true) {
+        std::cout << "Enter receiver's wallet ID (or 'z' to return Menu): ";
+        std::getline(std::cin, receiverWalletId);
+        receiverWalletId = trim(receiverWalletId);
+        if (receiverWalletId == "z" || receiverWalletId == "Z") {
+            std::cout << "Returning to Menu." << std::endl;
+            return arrow::Status::OK();
+        }
+        if (receiverWalletId.empty()) {
+            std::cout << "Invalid wallet ID. Please try again." << std::endl;
+            continue;
+        }
+        std::cout << "Enter receiver's full name (or 'z' to return Menu): ";
+        std::getline(std::cin, receiverFullName);
+        receiverFullName = trim(receiverFullName);
+        if (receiverFullName == "z" || receiverFullName == "Z") {
+            std::cout << "Returning to Menu." << std::endl;
+            return arrow::Status::OK();
+        }
+        if (receiverFullName.empty()) {
+            std::cout << "Invalid full name. Please try again." << std::endl;
+            continue;
+        } else if (receiverWalletId == currentUser->wallet()) {
+            std::cout << "You cannot transfer points to yourself." << std::endl;
+            continue;
+        }
+        
+        std::cout << "Enter points to transfer: ";
+        std::cin >> transferPoint;
+        if (std::cin.fail() || transferPoint <= 0) {
+            std::cin.clear(); // Xóa trạng thái lỗi
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Bỏ qua dòng nhập không hợp lệ
+            std::cout << "Invalid transfer points. Please enter a valid number again!" << std::endl;
+            continue;
+        }
+        
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Bỏ qua ký tự newline còn lại trong buffer
+
+        // Kiểm tra xem người dùng có đủ điểm để chuyển không
+        if (transferPoint > currentUser->point()) {
+            std::cout << "You do not have enough points to transfer." << std::endl;
+            continue;
+        }
+
+        std::string errorMessage;
+    
+        // Send API to check walletId
+        std::string res = searchWalletAPI(receiverWalletId, receiverFullName);
+        json res_json = json::parse(res);
+        if (!res_json["status"]) {
+            std::cout << "Cannot find user with walletId and fullname" << std::endl;
+            break;
+        }
+
+        // Xác nhận giao dịch
+        std::string confirm;
+        std::cout << "Are you sure you want to transfer " << transferPoint << " points to " << receiverFullName << "? (Yes/No): ";
+        std::getline(std::cin, confirm);
+        if (confirm != "Y" && confirm != "y") {
+            std::cout << "Transaction cancelled." << std::endl;
+            logTransaction(currentUser->wallet(), 
+                            currentUser->accountName(), 
+                            currentUser->fullName(), 
+                            receiverWalletId, 
+                            receiverUserName, 
+                            receiverFullName, 
+                            transferPoint, false);
+            return arrow::Status::OK();
+        }
+
+        //Xử lý OTP
+        int otpAttempts = 0;
+        const int maxOtpAttempts = 3;
+        bool otpVerified = false;
+        std::string otp, userOtp;
+
+        while (otpAttempts < maxOtpAttempts) {
+            otp = generateOTP(currentUser->wallet(), currentUser->accountName());
+            std::cout << "Your OTP is: " << otp << std::endl;
+            std::cout << "Enter the OTP: ";
+            getline(std::cin, userOtp);
+            userOtp = trim(userOtp);
+            if (userOtp == otp) {
+                otpVerified = true;
+                break;
+            } else {
+                std::cout << "Invalid OTP. Please try again." << std::endl;
+                otpAttempts++;
+            }
+        }
+
+        if(!verifyOTP(userOtp, currentUser->wallet(), currentUser->accountName())) {
+            std::cout << "You entered incorrect OTP 3 time. Transaction cancelled." << std::endl;
+            logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), receiverWalletId, receiverUserName, receiverFullName, transferPoint, false);
+            return arrow::Status::Invalid("Invalid OTP");
+        }
+
+        
+        // Cập nhật điểm người gửi qua API
+        json user_info = convertUserInfo2Json(currentUser);
+        std::string update_sender_point = senderUpdateWalletAPI(user_info, transferPoint);
+        std::cout << update_sender_point << std::endl;
+
+        // if (!status.ok()) {
+        //     std::cerr << "Error updating sender's points: " << status.ToString() << std::endl;
+        //     logTransaction(currentUser->wallet(), 
+        //                     currentUser->accountName(), 
+        //                     currentUser->fullName(), 
+        //                     receiverWalletId, 
+        //                     receiverUserName, 
+        //                     receiverFullName, 
+        //                     transferPoint, false);
+        //     return arrow::Status::IOError("Failed to update sender's points");
+        // }
+
+        // Create json message for producer
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&now_c), "%d-%m-%Y %H:%M:%S");
+        json transfer_msg = {
+            {"Sender wallet", currentUser->wallet()},
+            {"Sender username", currentUser->accountName()},
+            {"Time", ss.str()},
+            {"Point", std::to_string(transferPoint)},
+            {"UID", generateUniqueId()}
+        };
+
+        currentUser->sendMessageToKafka(transfer_msg.dump(), receiverWalletId);
+
+        // // Convert map to json
+        // std::string transfer_msg_json = map_to_json(transfer_msg);
+        // // Send from producer to broker
+        // currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
+
+        // // câp nhật điểm cho người nhận
+        // User receiver(receiverFullName, receiverUserName, "", receiverPoints, "", receiverWalletId);
+        // std::map<std::string, std::string> receiverUpdatedValues = {
+        //     {"Points", std::to_string(receiverPoints + transferPoint)}
+        // };
+        // User* receiverPtr = &receiver;
+        // status = updateUserInfo(filename, receiverPtr, receiverUpdatedValues, true);
+        // if (!status.ok()) {
+        //     std::cerr << "Error updating receiver's points: " << status.ToString() << std::endl;
+        //     logTransaction(currentUser->wallet(), 
+        //                     currentUser->accountName(), 
+        //                     currentUser->fullName(), 
+        //                     receiverWalletId, 
+        //                     receiverUserName, 
+        //                     receiverFullName, 
+        //                     transferPoint, false);
+        //     // std::remove(tempFilename.c_str());
+        //     return arrow::Status::IOError("Failed to update receiver's points");
+        // }
+
+        // //cập nhật điểm trong đối tượng currentUser
+        // currentUser->setPoint(currentUser->point() - transferPoint);
+        // // Ghi log giao dịch
+        // std::cout << "Transaction successful! " << transferPoint << " points transferred to " << receiverFullName << "." << std::endl;
+        // logTransaction(currentUser->wallet(), 
+        //                 currentUser->accountName(), 
+        //                 currentUser->fullName(), 
+        //                 receiverWalletId, 
+        //                 receiverUserName, 
+        //                 receiverFullName, 
+        //                 transferPoint, true);
+        break;
+    }
+    return arrow::Status::OK();
+}
+
 void eWallet(User *& currentUser) {
     while (true){
         int subChoice;
@@ -1009,21 +1198,19 @@ void eWallet(User *& currentUser) {
         cin >> subChoice;
         cin.ignore(); // Ignore the newline character left in the input buffer
         if(subChoice==1){
-            std::string filename = "../assets/users.parquet";
             try {
-            arrow::Status status = transferPoint(filename, currentUser);
-            if (!status.ok()) {
-                cout << "Error transferring points: " << status.ToString() << endl;
-                continue;
-            } else {
-                cout << "Points transferred successfully!" << endl;
+                arrow::Status status = transferPointPage(currentUser);
+                if (!status.ok()) {
+                    cout << "Error transferring points: " << status.ToString() << endl;
+                    continue;
+                } else {
+                    cout << "Points transferred successfully!" << endl;
+                }
+            } catch (const std::exception& e) {
+                    cout << "Exception occurred: " << e.what() << endl;
+            } catch (...) {
+                cout << "An unknown error occurred." << endl;
             }
-        }
-        catch (const std::exception& e) {
-            cout << "Exception occurred: " << e.what() << endl;
-        } catch (...) {
-            cout << "An unknown error occurred." << endl;
-        }
         } else if(subChoice==2){
             cout << "Are you sure you want to see All Transaction History? (Y/N) (or 'z' to return to E-Wallet Menu): ";
             string confirm;

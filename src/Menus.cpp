@@ -609,7 +609,7 @@ bool UserEditMenu(Admin * currentAdmin) {
                     cin.get();
                     break;
                 }
-                cout << "Press Enter to continue..." << endl;
+                cout << "Press ENTER key to continue..." << endl;
                 cin.get();
                 
                 
@@ -920,9 +920,11 @@ void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin = f
                 std::string statusFile = "../assets/userstatus.parquet";
                 std::map<std::string, std::string> status_update = {{"isGeneratedPassword", "false"}};
                 updateUserStatusRow(statusFile, currentUser->accountName(), status_update);
-                cout << "User status updated: isGeneratedPassword = false" << endl;
+                cout << "Password was updated!" << endl;
+                cout << "Press ENTER key to return Menu.....";
+                cin.get();
                 break; // Thoát khỏi vòng lặp đổi mật khẩu bắt buộc
-            }
+                }
             }
             else{
                 cout << "Password cannot be empty!" << endl;
@@ -1258,15 +1260,15 @@ void UserLoginMenu(User *& currentUser) {
                 cout << "Account was not deleted, Please contac Admin!" << endl;
 
             }
-            cout << "Press any key to return Menu.....";
+            cout << "Press ENTER key to return Menu.....";
             cin.get();
             break; // Exit the loop to log out
+            } 
         } else if(choice == 0){
             cout << "Logging out..." << endl;
             break; // Exit the loop to log out
         } else {
             cout << "Invalid choice. Please try again." << endl;
-            }
         }
     }
 }

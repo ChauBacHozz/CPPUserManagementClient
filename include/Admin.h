@@ -22,7 +22,7 @@ public:
     ~Admin();
 
 
-    std:string fullName();
+    std::string fullName();
     void setFullName(std::string &fullName);
 
     std::string accountName();

@@ -4,6 +4,7 @@
 #include <string>
 #include "arrow/io/file.h"
 #include "parquet/stream_reader.h"
+#include "parquet/arrow/writer.h"
 #include <openssl/sha.h>
 #include "DbUtils.h"
 #include "Menus.h"
@@ -47,9 +48,6 @@ int main () {
         system("cls");
         mainMenu(currentClient);
     }
-
-
-
 
     return 0;
 }

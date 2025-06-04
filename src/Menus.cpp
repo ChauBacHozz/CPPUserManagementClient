@@ -1157,9 +1157,12 @@ arrow::Status transferPointPage(User *& currentUser) {
 
 void eWallet(User *& currentUser) {
     while (true){
+        system("cls");
         int subChoice;
         cout << "\nUser: " << currentUser->accountName() << endl;
-        cout << "\n--- E-Wallet ---\n" << "Balance: " << currentUser -> point() << " points" << endl;
+        cout << "\n--- E-Wallet ---" << endl;
+        cout << "Balance: " << currentUser->point() << " points" << endl;
+        cout << "WalletID: " << currentUser->wallet() << endl;
         cout << "--------------------\n" << endl;
         printeWalletMenu();
         cin >> subChoice;
@@ -1223,6 +1226,7 @@ void UserLoginMenu(User *& currentUser) {
         currentUser->activateConsumerThread();
     }
     while (true){
+        system("cls");
         int choice;
         cout << "\nUser: " << currentUser->accountName() << endl;
         printUserLoginMenu();
@@ -1234,12 +1238,15 @@ void UserLoginMenu(User *& currentUser) {
         }
         
         if(choice == 1){
+           system("cls");
+        
            printUserInfoFromDb(currentUser);
            std::string filename = "../assets/users.parquet";
            //cout << "DEBUG: End of changeuserinfo" << endl;
            changeuserinfo(filename, currentUser, false); // Call the function to change user info
            //cout << "DEBUG: End of changeuserinfo" << endl;
         } else if(choice == 2){
+            system("cls");
             eWallet(currentUser);
         } else if(choice == 0){
             cout << "Logging out..." << endl;

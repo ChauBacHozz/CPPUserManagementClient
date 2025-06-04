@@ -18,7 +18,6 @@ void User::receiveMessageFromKafka(std::string topic) {
         return;
     }
 
-    std::cout << "Consumer started, waiting for message ..." << std::endl;
     while(true) {
         rd_kafka_message_t* msg = rd_kafka_consumer_poll(this->consumer, 1000);
         if (!msg) continue;
@@ -35,14 +34,14 @@ void User::receiveMessageFromKafka(std::string topic) {
             if (receive_data["Purpose"] == "SENDPOINT") {
                 int point = receive_data["Point"];
                 // Cộng điểm do user
-                std::cout << receive_data << std::endl;
+                std::cout << "[Notification] Receive message:" << receive_data << std::endl;
                 json user_info = convertUserInfo2Json(this);
                 std::string updatewallet_result= receiverUpdateWalletAPI(user_info, point);
                 json updatewallet_result_json = json::parse(updatewallet_result);
                 if (updatewallet_result_json["status"]) {
                     // Cập nhật điểm trên user này
                     this->setPoint(this->point() + point);
-                    std::cout << "Update +" << point << std::endl;
+                    std::cout << "[Notification] Update +" << point << std::endl;
 
                 }
             }
@@ -199,7 +198,7 @@ void User::sendMessageToKafka(std::string message, std::string topic) {
     ) != 0) {
         std::cerr << "Failed to produce: " << rd_kafka_err2str(rd_kafka_last_error()) << std::endl;
     } else {
-        std::cout << "Produced message: " << message << std::endl;
+        // std::cout << "Produced message: " << message << std::endl;
     }
 
     rd_kafka_flush(this->producer, 1000);

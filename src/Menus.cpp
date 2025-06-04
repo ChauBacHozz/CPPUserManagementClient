@@ -61,8 +61,8 @@ void printAdminManageUserStatusMenu() {
     cout << "--- ADMIN MANAGE USER STATUS MENU ---" << endl;
     cout << "---------------------------------" << endl;
     cout << "1. Edit GenPassword Status" << endl;
-    cout << "2. Unlock Acount" << endl;
-    cout << "3. Restore Acount" << endl;
+    cout << "2. Unlock Account" << endl;
+    cout << "3. Restore Account" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
@@ -1252,12 +1252,40 @@ void UserLoginMenu(User *& currentUser) {
             getline(cin, confirm);
             confirm = trim(confirm);
             if(confirm == "Y" || confirm == "y") {
+            
+                //Xử lý OTP
+                int otpAttempts = 0;
+                const int maxOtpAttempts = 3;
+                bool otpVerified = false;
+                std::string otp, userOtp;
+
+                while (otpAttempts < maxOtpAttempts) {
+                otp = generateOTP(currentUser->wallet(), currentUser->accountName());
+                std::cout << "Your OTP is: " << otp << std::endl;
+                std::cout << "Enter the OTP: ";
+                getline(std::cin, userOtp);
+                userOtp = trim(userOtp);
+                if (userOtp == otp) {
+                    otpVerified = true;
+                    break;
+                } else {
+                    std::cout << "Invalid OTP. Please try again." << std::endl;
+                    otpAttempts++;
+                    }
+                }
+
+                if(!verifyOTP(userOtp, currentUser->wallet(), currentUser->accountName())) {
+                    std::cout << "You entered incorrect OTP 3 time. Delele account cancelled." << std::endl;
+                    cout << "Press ENTER key to return Menu.....";
+                    cin.get();
+                    return;
+                }
             string fileStatus = "../assets/userstatus.parquet";
             map<string, string> update_values = {{"deleteUser", "true"}};
             if(updateUserStatusRow(fileStatus, currentUser->accountName(), update_values)) {
                 cout << "Account was deleted!" << endl;
             } else {
-                cout << "Account was not deleted, Please contac Admin!" << endl;
+                cout << "Account was not deleted, Please contact Admin!" << endl;
 
             }
             cout << "Press ENTER key to return Menu.....";

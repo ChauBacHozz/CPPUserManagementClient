@@ -696,6 +696,33 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
         std::string hashedPassword = sha256(userpassword + dbSalt);
         //std::cout << "Password: " << hashedPassword << std::endl;
         if (hashedPassword == dbhasdedPassword) {
+            //Xử lý OTP
+                int otpAttempts = 0;
+                const int maxOtpAttempts = 3;
+                bool otpVerified = false;
+                std::string otp, userOtp;
+
+                while (otpAttempts < maxOtpAttempts) {
+                otp = generateOTP(dbWalletId, dbUserName);
+                std::cout << "Your OTP is: " << otp << std::endl;
+                std::cout << "Enter the OTP (for verify account): ";
+                getline(std::cin, userOtp);
+                userOtp = trim(userOtp);
+                if (userOtp == otp) {
+                    otpVerified = true;
+                    break;
+                } else {
+                    std::cout << "Invalid OTP. Please try again." << std::endl;
+                    otpAttempts++;
+                    }
+                }
+
+                if(!verifyOTP(userOtp, dbWalletId, dbUserName)) {
+                    std::cout << "You entered incorrect OTP 3 time. Login account cancelled." << std::endl;
+                    std::cout << "Press ENTER key to return Menu.....";
+                    std::cin.get();
+                    return;
+                }
             std::cout << "Login successful!" << std::endl;
             currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
             if (userStatus == UserStatusType::GENERATED_PASSWORD) {
@@ -714,7 +741,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
             if (failedLoginCount == 3) {
                 logFailedLogin(userName);
                 std::cout << "Account temporarily locked due to multiple failed login attempts." << std::endl;
-                std::cout << "Please contac Admin for support" << std::endl;
+                std::cout << "Please contact Admin for support" << std::endl;
                 // Cập nhật trạng thái failedLogin và locked trong userstatus.parquet
                 std::string statusFile = "../assets/userstatus.parquet";
                 std::map<std::string, std::string> updated_values = {{"failedLogin", "true"}};

@@ -76,7 +76,7 @@ void User::initKafkaClient() {
 }
 
 User::User(){
-    initKafkaClient();
+    //initKafkaClient();
     // std::string topic = "test";
     // std::thread t_receive(&User::receiveMessageFromKafka, this, topic);
     // t_receive.join();
@@ -93,7 +93,7 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
     this->Salt = SaltArg;
     this->Wallet = WalletArg;
 
-    initKafkaClient();
+    //initKafkaClient();
     // std::string topic = "test";
     // std::thread t_receive(&User::receiveMessageFromKafka, this, topic);
     // t_receive.join();

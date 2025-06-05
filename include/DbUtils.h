@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <UserStatus.h>
+#include "Admin.h"
 
 
 bool readUserStatusFromFile(const std::string& userName, UserStatus& status);
@@ -24,7 +25,7 @@ bool appendUserStatusRow(std::string & filename,
                          std::string & date);
 
 bool updateUserStatusRow(const std::string& filename, const std::string& userName, 
-                        const std::map<std::string, std::string>& updated_values);
+                        const std::map<std::string, std::string>& status_update);
 
 arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arrow::Table>& existing_table);
 arrow::Status AppendUserParquetRow(std::string& filename, 
@@ -36,11 +37,12 @@ arrow::Status AppendUserParquetRow(std::string& filename,
                                     std::string& WalletId);
 std::vector<std::vector<std::string>> ReadCSV(const std::string& filename);
 bool saveUserToDbFromCSV(std::string& filename);
-void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentUser);
+void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User*& currentUser);
+void loginAdmin(std::shared_ptr<arrow::io::ReadableFile> infile, Admin*& currentAdmin);
 arrow::Status printUserInfoFromDb();
 arrow::Status updateUserInfo(const std::string& filename,
-                             User*& user,
-                            const std::map<std::string, 
+                            User*& user,
+                            std::map<std::string, 
                             std::string>& updated_values,
                             bool allow_point_update = false);
 arrow::Status registerUser(User *& user);

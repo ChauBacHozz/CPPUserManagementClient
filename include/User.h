@@ -14,7 +14,7 @@ private:
     std::string Wallet;
     int Point = 0;
     // Kafa client init;
-    std::string broker = "100.116.29.42:9092"; 
+    std::string broker = "100.116.29.42:9092";
     rd_kafka_conf_t* producer_conf;
     rd_kafka_conf_t* consumer_conf;
     std::string group_id = "consumer_group";

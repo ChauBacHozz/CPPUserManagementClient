@@ -1,13 +1,11 @@
 #ifndef ADMIN_H
 #define ADMIN_H
-
+#pragma once
 #include <string>
 #include "User.h"
-#include <DbUtils.h>
 #include "Client.h"
 
-class Admin : public Client
-{
+class Admin : public Client {
 private:
     std::string FullName;
     std::string AccountName;
@@ -18,9 +16,8 @@ private:
 public:
 
     Admin();
-    Admin(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
+    Admin(std::string fullNameArg, std::string accountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
     ~Admin();
-
 
     std::string fullName();
     void setFullName(std::string &fullName);

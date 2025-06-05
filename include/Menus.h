@@ -2,6 +2,7 @@
 #include "Client.h"
 #include "User.h"
 #include "Admin.h"
+#include <DbUtils.h>
 
 #include <iostream>
 #ifndef MENUS_H
@@ -14,7 +15,7 @@ void mainMenu(Client *& client);
 bool isUserExist(std::string userName);
 bool isvalisfullName(std::string fullname);
 bool isvalidPassword(std::string password);
-void changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin, bool forceChangePassword);
+std::map<std::string, std::string> changeuserinfo(std::string& filename, User *& currentUser, bool isAdmin, bool forceChangePassword, bool isTargetAdmin);
 void printchangeUserInfoMenu(bool isAdmin);
 
 

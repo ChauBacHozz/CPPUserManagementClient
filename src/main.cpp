@@ -8,6 +8,7 @@
 #include <openssl/sha.h>
 #include "DbUtils.h"
 #include "Menus.h"
+#include "Encrypt.h"
 using namespace std;
 
 void printTestKafKaMenu() {
@@ -48,6 +49,7 @@ int main () {
         system("cls");
         mainMenu(currentClient);
     }
+
 
     return 0;
 }

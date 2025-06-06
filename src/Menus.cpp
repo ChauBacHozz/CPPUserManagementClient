@@ -676,8 +676,10 @@ void AdminLoginMenu(Client *& currentClient) {
         
     if (currentAdmin != nullptr) {
         currentClient = currentAdmin;
-        system("cls");
-        int adminHomeMenuOption;
+        bool adminLoginMenuExit = false;
+        while (!adminLoginMenuExit) {
+            system("cls");
+            int adminHomeMenuOption;
             do {
                 system("cls");
                 printAdminHomeMenu();
@@ -685,10 +687,11 @@ void AdminLoginMenu(Client *& currentClient) {
                 //cout << "Your cho " << adminHomeMenuOption << endl;
     
             } while (adminHomeMenuOption < 0 || adminHomeMenuOption>4);
-    
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             switch (adminHomeMenuOption) {
             case 0:
                 cout << "Returning to main menu...\n";
+                adminLoginMenuExit = true;
                 break;
             case 1: { //Liệt kê danh sách user
                 system("cls");
@@ -795,7 +798,8 @@ void AdminLoginMenu(Client *& currentClient) {
             break;
         }
         default:
-        return;
+        break;
+    }
     }
     }
    // Admin page menu

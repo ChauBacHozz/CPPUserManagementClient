@@ -1235,7 +1235,7 @@ bool checkWalletIdAndFullName(const std::string& filename,
 
 // Hàm chuyển điểm
 arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
-    std::cout << "Starting transferPoint with file: " << filename << std::endl;
+    //std::cout << "Starting transferPoint with file: " << filename << std::endl;
     // Kiểm tra đầu vào
     if(!currentUser) {
         std::cerr << "Error: User is null!" << std::endl;
@@ -1257,12 +1257,12 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
     
     while (true) {
         //kiểm tra bộ đệm đầu vào
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         std::cout << "Enter receiver's wallet ID (or 'z' to return Menu): ";
         std::getline(std::cin, receiverWalletId);
         receiverWalletId = trim(receiverWalletId);
         if (receiverWalletId == "z" || receiverWalletId == "Z") {
-            std::cout << "Returning to Menu." << std::endl;
+            std::cout << "Returning to Menu..." << std::endl;
             return arrow::Status::OK();
         }
         if (receiverWalletId.empty()) {
@@ -1349,6 +1349,10 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
         int originalReceiverPoints = receiverPoints;
 
         // câp nhật điểm cho người gửi
+        std::cout << "Starting Updating sender info: " << currentUser->fullName() << std::endl;
+        std::cout << "Updating sender info: " << currentUser->fullName() 
+          << ", Wallet: " << currentUser->wallet() 
+          << ", New point: " << currentUser->point() - transferPoint << std::endl;
         std::map<std::string, std::string> senderUpdatedValues = {
             {"Points", std::to_string(currentUser->point() - transferPoint)}
         };
@@ -1379,10 +1383,10 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
         // Convert map to json
         std::string transfer_msg_json = map_to_json(transfer_msg);
         // Send from producer to broker
-        currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
+        //currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
 
         // câp nhật điểm cho người nhận
-        std::cout << "Starting Updating receiver info: " << receiverFullName;
+        std::cout << "Starting Updating receiver info: " << receiverFullName << std::endl;
         User receiver(receiverFullName, receiverUserName, "", receiverPoints, "", receiverWalletId);
         std::cout << "Updating receiver info: " << receiverFullName 
           << ", Wallet: " << receiverWalletId 
@@ -1423,8 +1427,9 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
                         receiverUserName, 
                         receiverFullName, 
                         transferPoint, true);
-        std::cout << "Press ENTER key to return Menu.....";
+        //std::cout << "Press ENTER key to return Menu.....";
         std::cin.get();
+        break;
     }
 
     return arrow::Status::OK();

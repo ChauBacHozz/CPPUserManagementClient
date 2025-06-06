@@ -69,12 +69,12 @@ bool verifyOTPForUser(User* currentUser) {
         return false; // Exit if secret key or transaction ID is empty
     }
 
-    std::string otp = generateOTP(secretKey, transactionID);
-    std::cout << "OTP for user " << currentUser->accountName() << " is: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
-
     int attempts = 0;
     const int maxAttempts = 3;
     while (attempts < maxAttempts) {
+        std::string otp = generateOTP(secretKey, transactionID);
+        std::cout << "OTP for user " << currentUser->accountName() << " is: " << otp << " (Valid for " << OTP_VALIDITY_SECONDS << " seconds)" << std::endl;
+
         std::string enteredOTP;
         std::cout << "Enter OTP to verify (Attempt " << (attempts + 1) << "/" << maxAttempts << "): ";
         std::cin >> enteredOTP;

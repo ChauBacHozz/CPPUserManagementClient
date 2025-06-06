@@ -46,9 +46,9 @@ bool verifyOTPForUser(User* currentUser);
 /**
  * Ghi log cho giao dịch vào file.
  */
-void logTransaction(int stt, const std::string& transactionID,
-                    const std::string& sourceAccount, const std::string& receiveAccount,
-                    const std::string& status);
+// void logTransaction(int stt, const std::string& transactionID,
+//                     const std::string& sourceAccount, const std::string& receiveAccount,
+//                     const std::string& status);
 
 /**
  * Hàm điều khiển toàn bộ phiên giao dịch.

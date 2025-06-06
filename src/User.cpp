@@ -83,7 +83,7 @@ User::User(){
 
 }
 
-User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
+User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int64_t PointArg, std::string SaltArg, std::string WalletArg)
 {
 
     this->FullName = FullNameArg;
@@ -161,7 +161,7 @@ void User::setPassword( std::string &password) {
 int User::point()  {
     return this->Point;
 }
-void User::setPoint(int point) {
+void User::setPoint(int64_t point) {
     this->Point = point;
 }
 

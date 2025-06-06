@@ -459,7 +459,7 @@ bool UserEditMenu(Admin * currentAdmin) {
             std::string accountName = user->accountName();
             std::string password = user->password();
             std::string salt = user->salt();
-            int point = user->point();
+            int64_t point = user->point();
             std::string wallet = user->wallet();
         
             arrow::Status resultRegisterUser = AppendUserParquetRow(saveParquetFileName,
@@ -1141,6 +1141,8 @@ void eWallet(User *& currentUser) {
         } catch (...) {
             cout << "An unknown error occurred." << endl;
         }
+        cout << "Press ENTER key to return Menu.....";
+        cin.get();
         } else if(subChoice==2){
             cout << "Are you sure you want to see All Transaction History? (Y/N) (or 'z' to return to E-Wallet Menu): ";
             string confirm;
@@ -1300,7 +1302,7 @@ void userHomeMenu(Client *& currentClient) {
             std::string accountName = currentUser->accountName();  
             std::string password = currentUser->password();
             std::string salt = currentUser->salt();
-            int point = currentUser->point();
+            int64_t point = currentUser->point();
             std::string wallet = currentUser->wallet();
             arrow::Status status = AppendUserParquetRow(filename, fullName, accountName, password, salt, point, wallet);
             cout << "DEBUG: Status after AppendUserParquetRow: " << status.ToString() << endl;

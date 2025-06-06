@@ -159,14 +159,14 @@ bool updateUserStatusRow(const std::string& filename, const std::string& userNam
     }
 
     // Tìm dòng cần update
-    int64_t rowToUpdate = -1;
+    int rowToUpdate = -1;
     auto userCol = table->GetColumnByName("User");
     if (!userCol) {
         std::cerr << "Column 'User' not found!" << std::endl;
         return false;
     }
     auto arr = std::static_pointer_cast<arrow::StringArray>(userCol->chunk(0));
-    for (int64_t i = 0; i < table->num_rows(); ++i) {
+    for (int i = 0; i < table->num_rows(); ++i) {
         if (arr->GetString(i) == userName) {
             rowToUpdate = i;
             break;
@@ -188,7 +188,7 @@ bool updateUserStatusRow(const std::string& filename, const std::string& userNam
             // Chỉ hỗ trợ string cho mọi trường
             arrow::StringBuilder builder;
             auto arr = std::static_pointer_cast<arrow::StringArray>(column->chunk(0));
-            for (int64_t i = 0; i < arr->length(); ++i) {
+            for (int i = 0; i < arr->length(); ++i) {
                 if (i == rowToUpdate)
                     builder.Append(it->second);
                 else
@@ -247,7 +247,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
                                    std::string& UserName, 
                                    std::string& UserPassword, 
                                    std::string& Salt, 
-                                   int Point, 
+                                   int64_t Point, 
                                    std::string& WalletId) {
 
     // Đọc bảng dữ liệu
@@ -324,6 +324,7 @@ arrow::Status AppendUserParquetRow(std::string& filename,
     return arrow::Status::OK();
 }
 
+// hàm thêm nhiều dòng vào file user.parquet 
 arrow::Status AppendBatchUserParquetRows(std::string& filename,
                                         std::vector<std::string>& FullNameArr,
                                         std::vector<std::string>& UserNameArr,
@@ -404,7 +405,7 @@ arrow::Status AppendBatchUserParquetRows(std::string& filename,
 
 }
 
-//hàm chuyển đổi vector chuỗi sang vector int64_t
+//hàm chuyển đổi vector chuỗi sang vector int
 std::vector<int64_t> convertToIntVector(const std::vector<std::string>& strVec) {
     std::vector<int64_t> intVec;
     intVec.reserve(strVec.size());  // Tối ưu hiệu năng
@@ -479,7 +480,7 @@ bool saveUserToDbFromCSV(std::string& filename) {
     std::vector<std::string> saltArr;
     std::vector<std::string> hashedParrwordArr;
     std::vector<std::string> walletIdArr;
-    for (int i = 0; i < userPointVec.size(); i++)
+    for (int64_t i = 0; i < userPointVec.size(); i++)
     {
         std::string salt = generateSaltStr();
         std::string hashedParrword = sha256(userInfoTable[2][i] + salt);
@@ -515,18 +516,18 @@ std::string trim(const std::string& str) {
 }
 
 //hàm in ra bảng dữ liệu giống như giao diện dòng lệnh
-void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int> columns_orders) {
-    const int col_width = 15;
+void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<int64_t> columns_orders) {
+    const int64_t col_width = 15;
 
     // Print headers
-    for (const int& i : columns_orders) {
+    for (const int64_t& i : columns_orders) {
         std::string header = table->schema()->field(i)->name();
         std::cout << std::setw(col_width) << TruncateString(header) << " | ";
     }
     std::cout << "\n";
 
     // Print separator
-    for (const int& col : columns_orders) {
+    for (const int64_t& col : columns_orders) {
         std::cout << std::string(col_width, '-') << " | ";
     }
     std::cout << "\n";
@@ -534,7 +535,7 @@ void PrintTableLikeCLI(const std::shared_ptr<arrow::Table>& table, std::vector<i
     // Print rows
     int64_t num_rows = table->num_rows();
     for (int64_t row = 0; row < num_rows; ++row) {
-        for (const int& col : columns_orders) {
+        for (const int64_t& col : columns_orders) {
             const auto& chunked_array = table->column(col);
             int64_t offset = 0;
             for (const auto& chunk : chunked_array->chunks()) {
@@ -561,7 +562,7 @@ arrow::Status printUserInfoFromDb() {
     std::shared_ptr<arrow::Table> table;
     ARROW_RETURN_NOT_OK(getTableFromFile(filename, table));
 
-    std::vector<int> column_orders = {0,1,2};
+    std::vector<int64_t> column_orders = {0,1,2};
     PrintTableLikeCLI(table, column_orders);
     return arrow::Status::OK();
 }
@@ -852,7 +853,7 @@ void loginAdmin(std::shared_ptr<arrow::io::ReadableFile> infile, Admin*& current
 // }
 
 //Hàm lấy thời gian hiện tại
-std::string getCurruntTime() {
+std::string getCurrentTime() {
     std::time_t now = std::time(nullptr);
     std::tm* local_time = std::localtime(&now);
     char buffer[80];
@@ -914,7 +915,7 @@ arrow::Status findUserrow(const std::shared_ptr<arrow::Table>& table,
     }
 
     int64_t globalRow = 0;
-    for(int chunkIdx = 0; chunkIdx < userNameColumn->num_chunks(); ++chunkIdx) {
+    for(int64_t chunkIdx = 0; chunkIdx < userNameColumn->num_chunks(); ++chunkIdx) {
         auto userNamearray = std::static_pointer_cast<arrow::StringArray>(userNameColumn->chunk(chunkIdx));
         auto walletIdArray = std::static_pointer_cast<arrow::StringArray>(walletIdColumn->chunk(chunkIdx));
         for(int64_t i = 0; i < userNamearray->length(); i++, globalRow++) {
@@ -1016,7 +1017,7 @@ arrow::Status updateUserInfo(const std::string& filename,
 
     //Tạo cột mới
     std::vector<std::shared_ptr<arrow::Array>> newColumns;
-    for(int colIdx = 0; colIdx < table->num_columns(); ++colIdx) {
+    for(int64_t colIdx = 0; colIdx < table->num_columns(); ++colIdx) {
         auto column = table->column(colIdx);
         auto fieldName = table->field(colIdx)->name();
         std::shared_ptr<arrow::Array> newColumn;
@@ -1025,7 +1026,7 @@ arrow::Status updateUserInfo(const std::string& filename,
         if(it != updated_values.end()) {
             if(fieldName == "Points") {
                 arrow::Int64Builder builder;
-                int64_t value;
+                int value;
                 try
                 {
                     value = std::stoll(it->second);
@@ -1034,10 +1035,10 @@ arrow::Status updateUserInfo(const std::string& filename,
                     std::cerr << "Invalid integer value for column Point: " << it->second << std::endl;
                     return arrow::Status::Invalid("Invalid integer value for column Point");
                 }
-                int64_t currentRow = 0;
+                int currentRow = 0;
                 for (const auto& chunk : column->chunks()) {
                     auto int64_array = std::static_pointer_cast<arrow::Int64Array>(chunk);
-                    for(int64_t i = 0; i < int64_array->length(); i++, currentRow++) {
+                    for(int i = 0; i < int64_array->length(); i++, currentRow++) {
                         if(rowToUpdate >= 0 && rowToUpdate < table->num_rows() && currentRow == rowToUpdate) {
                             ARROW_RETURN_NOT_OK(builder.Append(value));
                         } else {
@@ -1081,8 +1082,7 @@ arrow::Status updateUserInfo(const std::string& filename,
     ARROW_ASSIGN_OR_RAISE(outfile, arrow::io::FileOutputStream::Open(filename));
     parquet::WriterProperties::Builder props_builder;
     std::shared_ptr<parquet::WriterProperties> props = props_builder.build();
-    ARROW_RETURN_NOT_OK(parquet::arrow::WriteTable(
-                                                   *newTable,
+    ARROW_RETURN_NOT_OK(parquet::arrow::WriteTable(*newTable,
                                                     arrow::default_memory_pool(),
                                                     outfile,
                                                     10240,
@@ -1123,12 +1123,12 @@ void logTransaction(const std::string& senderWalletId,
         logFile.close();
     }
     
-    const uint64_t maxfileSize = 100 * 1024 * 1024; // 100MB
+    const int maxfileSize = 100 * 1024 * 1024; // 100MB
 
     if(std::filesystem::exists(logFilename)) {
-        uint64_t fileSize = std::filesystem::file_size(logFilename);
+        int fileSize = std::filesystem::file_size(logFilename);
         if(fileSize > maxfileSize) {
-            std::string backupFilename = "...logs/transaction_" + getCurruntTime().substr(0, 10) + ".log";
+            std::string backupFilename = "...logs/transaction_" + getCurrentTime().substr(0, 10) + ".log";
             std::rename(logFilename.c_str(), backupFilename.c_str());
         }
 
@@ -1138,7 +1138,7 @@ void logTransaction(const std::string& senderWalletId,
         // Ghi log vào file
         std::ofstream logFile(logFilename, std::ios::app);
         if(logFile.is_open()) {
-            logFile << "[" << generateTxId() << " " << getCurruntTime() << "] Transfer"
+            logFile << "[" << generateTxId() << " " << getCurrentTime() << "] Transfer"
                     << " From WalletId = " << senderWalletId << " (" << senderuserName << ", " << senderFullName << ")"
                     << " To WalletId = " << receiverWalletId << " (" << receiveruserName << ", " << receiverFullName << ")"
                     << " Points transferred: " << transferPoint << " Status: " << (isSuccess ? "Success" : "Failed") << "\n";
@@ -1152,13 +1152,13 @@ void logTransaction(const std::string& senderWalletId,
         }
 }
 
-bool walletIdExists = false;
 //Hàm kiểm tra WalletId và FFullName
+bool walletIdExists = false;
 bool checkWalletIdAndFullName(const std::string& filename,
                               const std::string& walletId, 
                               const std::string& fullName,
                               int64_t& receiverPoints,
-                              int& receiverRow,
+                              int64_t& receiverRow,
                               std::string& receiverUserName,
                               std::string& errorMessage) {
     std::cout << "Checking WalletId: " << walletId << ", Fullname" << fullName << std::endl;
@@ -1198,7 +1198,7 @@ bool checkWalletIdAndFullName(const std::string& filename,
     }
 
     // Kiểm tra WalletId và FullName
-    int64_t globalRowCount = 0;    
+    int globalRowCount = 0;    
     bool walletIdFound = false;
     for (int chunkIdx = 0; chunkIdx < walletIdColumn->num_chunks(); ++chunkIdx) {
         auto walletIdArray = std::static_pointer_cast<arrow::StringArray>(walletIdColumn->chunk(chunkIdx));
@@ -1208,7 +1208,7 @@ bool checkWalletIdAndFullName(const std::string& filename,
 
         std::cout << "Processing chunk " << chunkIdx << " with " << walletIdArray->length() << " row" << std::endl;
 
-        for (int64_t i = 0; i < walletIdArray->length(); ++i, ++globalRowCount) {
+        for (int i = 0; i < walletIdArray->length(); ++i, ++globalRowCount) {
             if (walletIdArray->IsNull(i) || fullNameArray->IsNull(i)) {
                 continue; // Bỏ qua các giá trị null
             }
@@ -1247,14 +1247,17 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
         return arrow::Status::Invalid("File does not exist");
     }
     
+    //Nhập thông tin người nhận
     std::string receiverWalletId;
     std::string receiverFullName;
     std::string receiverUserName;
-    int64_t receiverPoints;
-    int receiverRow;
+    int64_t receiverPoints = 0;
+    int64_t receiverRow = -1;
     int64_t transferPoint = 0;
     
     while (true) {
+        //kiểm tra bộ đệm đầu vào
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         std::cout << "Enter receiver's wallet ID (or 'z' to return Menu): ";
         std::getline(std::cin, receiverWalletId);
         receiverWalletId = trim(receiverWalletId);
@@ -1281,6 +1284,20 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
             continue;
         }
         
+        //Kiểm tra thông tin người nhận
+        std::string errorMessage;
+        if(!checkWalletIdAndFullName(filename, 
+                                     receiverWalletId, 
+                                     receiverFullName, 
+                                     receiverPoints, 
+                                     receiverRow, 
+                                     receiverUserName, 
+                                     errorMessage)) {
+            std::cout << "Error: " << errorMessage << std::endl;
+            continue;
+        }
+
+        //nhập số điểm muốn chuyển
         std::cout << "Enter points to transfer: ";
         std::cin >> transferPoint;
         if (std::cin.fail() || transferPoint <= 0) {
@@ -1298,17 +1315,6 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
             continue;
         }
 
-        std::string errorMessage;
-        if(!checkWalletIdAndFullName(filename, 
-                                     receiverWalletId, 
-                                     receiverFullName, 
-                                     receiverPoints, 
-                                     receiverRow, 
-                                     receiverUserName, 
-                                     errorMessage)) {
-            std::cout << "Error: " << errorMessage << std::endl;
-            continue;
-        }
 
         // Xác nhận giao dịch
         std::string confirm;
@@ -1327,33 +1333,21 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
         }
 
         //Xử lý OTP
-        int otpAttempts = 0;
-        const int maxOtpAttempts = 3;
-        bool otpVerified = false;
-        std::string otp, userOtp;
-
-        while (otpAttempts < maxOtpAttempts) {
-            otp = generateOTP(currentUser->wallet(), currentUser->accountName());
-            std::cout << "Your OTP is: " << otp << std::endl;
-            std::cout << "Enter the OTP: ";
-            getline(std::cin, userOtp);
-            userOtp = trim(userOtp);
-            if (userOtp == otp) {
-                otpVerified = true;
-                break;
-            } else {
-                std::cout << "Invalid OTP. Please try again." << std::endl;
-                otpAttempts++;
-            }
+        if(!verifyOTPForUser(currentUser)) {
+                    std::cout << "OTP verification failed. Transfer point cancelled!" << std::endl;
+                    logTransaction(currentUser->wallet(), 
+                                    currentUser->accountName(),
+                                    currentUser->fullName(),
+                                    receiverWalletId,
+                                    receiverUserName,
+                                    receiverFullName,
+                                    transferPoint, false);
+                    continue;
         }
+        //Tạo bản sao dữ liệu để rollback nếu cần
+        int originalSenderPoints = currentUser->point();
+        int originalReceiverPoints = receiverPoints;
 
-        if(!verifyOTP(userOtp, currentUser->wallet(), currentUser->accountName())) {
-            std::cout << "You entered incorrect OTP 3 time. Transaction cancelled." << std::endl;
-            logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), receiverWalletId, receiverUserName, receiverFullName, transferPoint, false);
-            return arrow::Status::Invalid("Invalid OTP");
-        }
-
-        
         // câp nhật điểm cho người gửi
         std::map<std::string, std::string> senderUpdatedValues = {
             {"Points", std::to_string(currentUser->point() - transferPoint)}
@@ -1388,25 +1382,36 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
         currentUser->sendMessageToKafka(transfer_msg_json, receiverWalletId);
 
         // câp nhật điểm cho người nhận
+        std::cout << "Starting Updating receiver info: " << receiverFullName;
         User receiver(receiverFullName, receiverUserName, "", receiverPoints, "", receiverWalletId);
+        std::cout << "Updating receiver info: " << receiverFullName 
+          << ", Wallet: " << receiverWalletId 
+          << ", New point: " << receiverPoints + transferPoint << std::endl;
         std::map<std::string, std::string> receiverUpdatedValues = {
             {"Points", std::to_string(receiverPoints + transferPoint)}
         };
         User* receiverPtr = &receiver;
         status = updateUserInfo(filename, receiverPtr, receiverUpdatedValues, true);
+        std::cout << "Receiver update status: " << status.ToString() << std::endl;
         if (!status.ok()) {
             std::cerr << "Error updating receiver's points: " << status.ToString() << std::endl;
-            logTransaction(currentUser->wallet(), 
+            //Rollback điểm người gửi
+            senderUpdatedValues = {{"Points", std::to_string(originalSenderPoints)}};
+            arrow::Status rollbackSatus = updateUserInfo(filename, currentUser, senderUpdatedValues, true);
+                if(!rollbackSatus.ok()) {
+                    std::cerr << "Critical error: Failed to rollback sender's points: " << rollbackSatus.ToString() << std::endl;
+                            logTransaction(currentUser->wallet(), 
                             currentUser->accountName(), 
                             currentUser->fullName(), 
                             receiverWalletId, 
                             receiverUserName, 
                             receiverFullName, 
                             transferPoint, false);
-            // std::remove(tempFilename.c_str());
-            return arrow::Status::IOError("Failed to update receiver's points");
+                    // std::remove(tempFilename.c_str());
+                    return arrow::Status::IOError("Failed to update receiver's points");
+                    }
         }
-
+        
         //cập nhật điểm trong đối tượng currentUser
         currentUser->setPoint(currentUser->point() - transferPoint);
         // Ghi log giao dịch
@@ -1418,8 +1423,10 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
                         receiverUserName, 
                         receiverFullName, 
                         transferPoint, true);
-        break;
+        std::cout << "Press ENTER key to return Menu.....";
+        std::cin.get();
     }
+
     return arrow::Status::OK();
 }
     

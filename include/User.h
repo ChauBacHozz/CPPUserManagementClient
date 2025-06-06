@@ -12,7 +12,7 @@ private:
     std::string Password;
     std::string Salt;
     std::string Wallet;
-    int Point = 0;
+    int64_t Point = 0;
     // Kafa client init;
     std::string broker = "100.116.29.42:9092";
     rd_kafka_conf_t* producer_conf;
@@ -27,7 +27,7 @@ private:
     
 public:
     User();
-    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg);
+    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int64_t PointArg, std::string SaltArg, std::string WalletArg);
     ~User();
 
     void initKafkaClient();
@@ -48,7 +48,7 @@ public:
 
 
     int point() ;
-    void setPoint(int point);
+    void setPoint(int64_t point);
 
     std::string salt() ;
     void setSalt( std::string &salt);

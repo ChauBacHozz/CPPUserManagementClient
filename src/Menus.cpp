@@ -46,6 +46,16 @@ void printAdminHomeMenu() {
     cout << "Enter Your Option: ";
 }
 
+void printAdminEditingInfo() {
+        cout << "--- ADMIN EDITING INFO MENU ---\n";
+        cout << "1. Change Full Name\n";
+        cout << "2. Change Password\n";
+        cout << "3. Change Points\n";
+        cout << "0. Back\n";
+        cout << "-------------------------------\n";
+        cout << "Enter your choice: ";
+}
+
 void printUserEditMenu() {
     cout << "--- ADMIN MANAGE USER MENU ---" << endl;
     cout << "---------------------------------" << endl;
@@ -666,11 +676,8 @@ void AdminLoginMenu(Client *& currentClient) {
         
     if (currentAdmin != nullptr) {
         currentClient = currentAdmin;
-        bool adminLoginMenuExit = false;
-        while (!adminLoginMenuExit) {
-            /* code */
-            system("cls");
-            int adminHomeMenuOption;
+        system("cls");
+        int adminHomeMenuOption;
             do {
                 system("cls");
                 printAdminHomeMenu();
@@ -681,7 +688,7 @@ void AdminLoginMenu(Client *& currentClient) {
     
             switch (adminHomeMenuOption) {
             case 0:
-                adminLoginMenuExit = true; 
+                cout << "Returning to main menu...\n";
                 break;
             case 1: { //Liệt kê danh sách user
                 system("cls");
@@ -730,35 +737,75 @@ void AdminLoginMenu(Client *& currentClient) {
 
             case 4: { //Thay đổi thông tin user admin
                 //printUserInfoFromDb(currentAdmin);
-                std::string filename = "../assets/admin.parquet"; 
+                std::string filename = "../assets/admin.parquet";
                 //cout << "DEBUG: End of changeuserinfo" << endl;
-                //Admin* currentAdmin = currentAdmin;
-                auto updated_value = changeuserinfo(filename, reinterpret_cast<User*&>(currentAdmin), true, false, true); // Call the function to change user info
-                //cout << "DEBUG: End of changeuserinfo" << endl
-                if(!updated_value.empty()) {
-                arrow::Status status = updateUserInfo(filename, reinterpret_cast<User*&>(currentAdmin), updated_value);
-                if(!status.ok()){
-                    cout << "Error updating user info: " << status.ToString() << endl;
-                } else {
-                    cout << "All changes saved successfully!" << endl;
+                bool adminEditingMenuExit = false;
+                do {
+                printAdminEditingInfo();
+                int choice;
+                cin >> choice;
+                cin.ignore();
+                string newValue;
+                int64_t newPoints;
+                switch (choice) {
+                    case 1:
+                        cout << "Enter new full name: ";
+                        getline(std::cin, newValue);
+                        if (changeAdminName(filename, currentAdmin, newValue).ok()) {
+                            cout << "Name changed successfully!\n";
+                        } else {
+                            cout << "Failed to change name!\n";
+                        }
+                        cout << "Press ENTER to continue...";
+                        cin.get();
+                        break; // Thoát để quay lại menu cha
+                    case 2:
+                        cout << "Enter new password: ";
+                        getline(cin, newValue);
+                        if (changeAdminPassword(filename, currentAdmin, newValue).ok()) {
+                            cout << "Password changed successfully!\n";
+                        } else {
+                            cout << "Failed to change password!\n";
+                        }
+                        cout << "Press ENTER to continue...";
+                        cin.get();
+                        break; // Thoát để quay lại menu cha
+                    case 3:
+                        cout << "Enter new points: ";
+                        cin >> newPoints;
+                        if (changeAdminPoints(filename, currentAdmin, newPoints).ok()) {
+                            cout << "Points changed successfully!\n";
+                        } else {
+                            cout << "Failed to change points!\n";
+                        }
+                        cout << "Press ENTER to continue...\n";
+                        cin.get();
+                        break; // Thoát để quay lại menu cha
+                    case 0:
+                        cout << "Returning to main menu...\n";
+                        adminEditingMenuExit = true;
+                        break;
+                    default:
+                        cout << "Invalid choice!\n";
+                        cout << "Press ENTER key to continue...\n";
+                        cin.get();
+                        break;
                 }
-
-                break;
-            }
-            }
-                default:
-                break;
-            }
-            
+            } while(!adminEditingMenuExit);
+            break;
         }
-
-        // Admin page menu
-    } else {
+        default:
+        return;
+    }
+    }
+   // Admin page menu
+    else {
         cout  << "Login failed as admin" << endl;
-
+        cout << "Press ENTER key to continue...\n";
+        cin.get();
+        return;
     }
     delete currentAdmin;
-
 }
 
 //Hàm thay đổi thông tin User có thể gọi được ở cả User và Admin
@@ -772,7 +819,7 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
         std::cerr << "Error: Current user is null!" << std::endl;
         return{};
     }
-    map<std::string, std::string> updated_values; // Tạm lưu các thay đổi
+    map<string, string> updated_values; // Tạm lưu các thay đổi
     //cout << "DEBUG: Entering changeuserinfo function" << endl;
     while (true){
         int subChoice;

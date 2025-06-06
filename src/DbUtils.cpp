@@ -241,6 +241,118 @@ arrow::Status getTableFromFile(const std::string& filename, std::shared_ptr<arro
     return arrow::Status::OK();
 }
 
+// hàm cập nhật thông tin admin
+arrow::Status updateAdminRow(std::string& filename, Admin* admin, 
+    std::map<std::string, std::string>& update_AdminInfo) {
+    if(!admin) {
+        std::cerr << "Error: Admin is null!" << std::endl;
+        return arrow::Status::Invalid("Admin is null");
+    }
+    if(!std::filesystem::exists(filename)) {
+        std::cerr << "Error: File does not exist: " << filename << std::endl;
+        return arrow::Status::Invalid("File does not exist");
+    }
+    //đọc file
+    std::shared_ptr<arrow::Table> table;
+    arrow::Status status = getTableFromFile(filename, table);
+    if(!status.ok()) {
+        std::cerr << "Error reading file: " << status.ToString() << std::endl;
+        return status;
+    }
+    if(!table || table->num_rows() == 0) {
+        std::cerr << "Error: Table is empty or not found!" << std::endl;
+        return arrow::Status::Invalid("Table is empty or not found");
+    }
+    //kiểm tra cột cần thiết
+    auto userNamecol = table->GetColumnByName("UserName");
+    auto fullNamecol = table->GetColumnByName("FullName");
+    auto passwordcol = table->GetColumnByName("Password");
+    auto saltcol = table->GetColumnByName("Salt");
+    auto pointscol = table->GetColumnByName("Points");
+    auto idwalletcol = table->GetColumnByName("IDWallet");
+
+    if(!userNamecol || !fullNamecol || !passwordcol || !saltcol || !pointscol || !idwalletcol) {
+        std::cerr << "Error: Required columns not found!" << std::endl;
+        return arrow::Status::Invalid("Required columns not found");
+    }
+    // Tìm hàng cần cập nhất
+    int64_t rowToUpdate;
+    int64_t globalRow = 0;
+    for (int chunkIdx = 0; chunkIdx < userNamecol->num_chunks(); ++chunkIdx) {
+        auto userNameArray = std::static_pointer_cast<arrow::StringArray>(userNamecol->chunk(chunkIdx));
+        for (int64_t i = 0; i < userNameArray->length(); ++i, ++globalRow) {
+            if(userNameArray->IsNull(i)) continue;
+            if (userNameArray->GetString(i) == admin->accountName()) {
+                rowToUpdate = globalRow;
+                std::cout << "Found admin at row " << rowToUpdate << std::endl;
+                break;
+        }
+    }
+    if(rowToUpdate != -1) break;
+    }
+    if(rowToUpdate == -1) {
+        std::cerr << "Error: Admin not found in file!" << std::endl;
+        return arrow::Status::Invalid("Admin data mismatch");
+    }
+    //cập nhật các cột
+    std::vector<std::shared_ptr<arrow::Array>> newColumns;
+    for (int colIdx = 0; colIdx < table->num_columns(); ++colIdx) {
+        auto column = table->column(colIdx);
+        auto fieldName = table->field(colIdx)->name();
+        std::shared_ptr<arrow::Array> newColumn;
+
+        if (fieldName == "Points" && update_AdminInfo.count(fieldName)) {
+            arrow::Int64Builder builder;
+            int64_t value = std::stoll(update_AdminInfo.at(fieldName));
+            int64_t currentRow = 0;
+            for (const auto& chunk : column->chunks()) {
+                auto int64_array = std::static_pointer_cast<arrow::Int64Array>(chunk);
+                for (int64_t i = 0; i < int64_array->length(); ++i, ++currentRow) {
+                    if (currentRow == rowToUpdate) {
+                        builder.Append(value);
+                    } else {
+                        builder.Append(int64_array->Value(i));
+                    }
+                }
+            }
+            builder.Finish(&newColumn);
+        } else if (fieldName != "Points" && update_AdminInfo.count(fieldName)) {
+            arrow::StringBuilder builder;
+            int64_t currentRow = 0;
+            for (const auto& chunk : column->chunks()) {
+                auto string_array = std::static_pointer_cast<arrow::StringArray>(chunk);
+                for (int64_t i = 0; i < string_array->length(); ++i, ++currentRow) {
+                    if (currentRow == rowToUpdate) {
+                        builder.Append(update_AdminInfo.at(fieldName));
+                    } else if (string_array->IsNull(i)) {
+                        builder.AppendNull();
+                    } else {
+                        builder.Append(string_array->GetString(i));
+                    }
+                }
+            }
+            builder.Finish(&newColumn);
+        } else {
+            ARROW_ASSIGN_OR_RAISE(newColumn, arrow::Concatenate(column->chunks()));
+        }
+        newColumns.push_back(newColumn);
+    }
+
+    // Ghi lại file
+    auto newTable = arrow::Table::Make(table->schema(), newColumns);
+    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    ARROW_ASSIGN_OR_RAISE(outfile, arrow::io::FileOutputStream::Open(filename));
+    parquet::WriterProperties::Builder props_builder;
+    std::shared_ptr<parquet::WriterProperties> props = props_builder.build();
+    status = parquet::arrow::WriteTable(*newTable, arrow::default_memory_pool(), outfile, 10240, props);
+    if (!status.ok()) {
+        std::cerr << "Error writing file: " << status.ToString() << std::endl;
+        return status;
+    }
+    outfile->Close();
+    return arrow::Status::OK();
+}
+
 //Hàm thêm một dòng mới vào file user.parquet
 arrow::Status AppendUserParquetRow(std::string& filename, 
                                    std::string& FullName, 

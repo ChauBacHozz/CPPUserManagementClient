@@ -83,8 +83,9 @@ User::User(){
 
 }
 
-User::User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int64_t PointArg, std::string SaltArg, std::string WalletArg)
-{
+User::User(std::string FullNameArg, std::string AccountNameArg, 
+            std::string PasswordArg, int64_t PointArg, 
+            std::string SaltArg, std::string WalletArg) {
 
     this->FullName = FullNameArg;
     this->AccountName = AccountNameArg;
@@ -97,7 +98,6 @@ User::User(std::string FullNameArg, std::string AccountNameArg, std::string Pass
     // std::string topic = "test";
     // std::thread t_receive(&User::receiveMessageFromKafka, this, topic);
     // t_receive.join();
-
 }
 
 void User::activateConsumerThread() {
@@ -158,7 +158,7 @@ void User::setPassword( std::string &password) {
     this->Password = password;
 }
 
-int User::point()  {
+int64_t User::point()  {
     return this->Point;
 }
 void User::setPoint(int64_t point) {

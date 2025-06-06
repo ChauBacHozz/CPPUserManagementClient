@@ -57,6 +57,8 @@ void logTransaction(const std::string& senderWalletId,
                     int64_t transferPoint,
                     bool isSuccess,
                     const std::string& errorMessage = "");
+arrow::Status updateAdminRow(std::string& filename, Admin* admin, 
+    std::map<std::string, std::string>& update_AdminInfo);
 
 
 #endif

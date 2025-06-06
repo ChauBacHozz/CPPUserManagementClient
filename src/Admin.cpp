@@ -1,6 +1,7 @@
 #include "User.h"
 #include <string>
 #include <iostream>
+#include <arrow/api.h>
 #include "arrow/io/file.h"
 #include "parquet/stream_reader.h"
 #include "DbUtils.h"
@@ -12,8 +13,16 @@ Admin::Admin()
 
 }
 
-Admin::Admin(std::string fullNameArg, std::string accountNameArg, std::string PasswordArg, int PointArg, std::string SaltArg, std::string WalletArg)
-{
+Admin::Admin(std::string fullNameArg, std::string accountNameArg, 
+             std::string PasswordArg, int64_t PointArg, 
+             std::string SaltArg, std::string WalletArg) {
+
+    this->FullName = fullNameArg;
+    this->AccountName = accountNameArg;
+    this->Password = PasswordArg;
+    this->Point = PointArg;
+    this->Salt = SaltArg;
+    this->Wallet = WalletArg;
 }
 
 std::string Admin::salt()  {
@@ -46,10 +55,10 @@ void Admin::setPassword(std::string password) {
 }
 
 
-int Admin::point()  {
+int64_t Admin::point()  {
     return this->Point;
 }
-void Admin::setPoint(int point) {
+void Admin::setPoint(int64_t point) {
     this->Point = point;
 }
 
@@ -63,4 +72,58 @@ void Admin::setWallet(std::string &wallet) {
 Admin::~Admin()
 {
     
+}
+
+//Đổi tên Admin
+arrow::Status changeAdminName(std::string& filename, Admin* admin, 
+                                std::string& newFullName) {
+    std::map<std::string, std::string> updated_values = {{"FullName", newFullName}};
+    arrow::Status status = updateAdminRow(filename, admin, updated_values);
+    if (status.ok()) {
+        admin->setFullName(const_cast<std::string&>(newFullName));
+    }
+    return status;
+}
+
+//Đổi mật khẩu
+arrow::Status changeAdminPassword(std::string& filename, Admin* admin,
+                                    std::string& newPassword) {
+    std::string newSalt = generateSaltStr();
+    if (newSalt.empty()) {
+        std::cerr << "Error: Failed to generate salt!" << std::endl;
+        return arrow::Status::UnknownError("Failed to generate salt");
+    }
+    // Hash mật khẩu mới với salt mới
+    std::string hashedPassword = sha256(newPassword + newSalt);
+    if (hashedPassword.empty()) {
+        std::cerr << "Error: Failed to hash password!" << std::endl;
+        return arrow::Status::UnknownError("Failed to hash password");
+    }
+
+    // Cập nhật cả Password và Salt vào file
+    std::map<std::string, std::string> updated_values = {
+        {"Password", hashedPassword},
+        {"Salt", newSalt}
+    };
+    arrow::Status status = updateAdminRow(filename, admin, updated_values);
+    if (!status.ok()) {
+        std::cerr << "Error updating admin data: " << status.ToString() << std::endl;
+        return status;
+    }
+
+    // Đồng bộ với đối tượng Admin
+    admin->setPassword(const_cast<std::string&>(hashedPassword));
+    admin->setSalt(const_cast<std::string&>(newSalt));
+
+    return arrow::Status::OK();
+}
+
+//Hàm đổi điểm Admin-Ví tổng
+arrow::Status changeAdminPoints(std::string& filename, Admin* admin, int64_t newPoints) {
+    std::map<std::string, std::string> updated_values = {{"Points", std::to_string(newPoints)}};
+    arrow::Status status = updateAdminRow(filename, admin, updated_values);
+    if (status.ok()) {
+        admin->setPoint(newPoints); // Cập nhật đối tượng Admin
+    }
+    return status;
 }

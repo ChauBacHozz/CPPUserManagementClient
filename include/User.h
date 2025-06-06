@@ -27,7 +27,9 @@ private:
     
 public:
     User();
-    User(std::string FullNameArg, std::string AccountNameArg, std::string PasswordArg, int64_t PointArg, std::string SaltArg, std::string WalletArg);
+    User(std::string FullNameArg, std::string AccountNameArg, 
+         std::string PasswordArg, int64_t PointArg, std::string SaltArg, 
+         std::string WalletArg);
     ~User();
 
     void initKafkaClient();
@@ -47,7 +49,7 @@ public:
     void setPassword( std::string &password);
 
 
-    int point() ;
+    int64_t point() ;
     void setPoint(int64_t point);
 
     std::string salt() ;

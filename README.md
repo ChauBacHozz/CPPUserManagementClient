@@ -102,7 +102,7 @@ cd CppPtitProjectPrototype
 ./run.bat
 ```
 
-Tập tin được clone về, sử dụng "./run.bat" để chạy chương trình
+Tập tin được clone về, sử dụng "./run.bat" để chạy chương trình bằng CMake
 Chương trình sẽ hiển thị hướng dẫn trên màn hình để bạn đăng nhập với vai trò user hoặc admin.
 
 ###  Chi tiết liên kết thư viện bằng CMake

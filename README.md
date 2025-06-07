@@ -94,17 +94,16 @@ CppPtitProjectPrototype/
 - **librdkafka** (thư viện Kafka, tùy chọn đã được bao gồm)
 - Yêu cầu các file định dạng `.dll` cần được để đúng trong thư mục `lib/`
 
-### Tạo dự án
+### Tạo dự án và chạy chương trình
 
 ```bash
 git clone https://github.com/ChauBacHozz/CppPtitProjectPrototype.git
 cd CppPtitProjectPrototype
-mkdir build && cd build
-cmake ..
-make
+./run.bat
 ```
 
-Tập tin sau khi được biên dịch thì được lưu tại `build/` với file có tên `main`.
+Tập tin được clone về, sử dụng "./run.bat" để chạy chương trình
+Chương trình sẽ hiển thị hướng dẫn trên màn hình để bạn đăng nhập với vai trò user hoặc admin.
 
 ###  Chi tiết liên kết thư viện bằng CMake
 
@@ -130,19 +129,6 @@ add_custom_command(TARGET main POST_BUILD
 ```
 
 - Trên Windows, bạn có thể cần điều chỉnh đường dẫn trong `CMakeLists.txt` để khớp với vị trí cài đặt thực tế của các thư viện Arrow, Parquet, OpenSSL và Kafka trên máy của bạn.
-
-## Chạy chương trình
-
-Sau khi build thành công, bạn có thể chạy file thực thi trong thư mục `build/` bằng lệnh:
-```
-./main
-```
-Nếu chạy bằng CMake thì sử dụng câu lệnh 
-```
-./run.bat
-```
-
-Chương trình sẽ hiển thị hướng dẫn trên màn hình để bạn đăng nhập với vai trò user hoặc admin.
 
 ##  Example Use Cases
 

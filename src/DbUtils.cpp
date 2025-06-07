@@ -1312,6 +1312,49 @@ void logTransaction(const std::string& senderWalletId,
         }
 }
 
+//Hàm ghi log edit điểm
+void logPointEditTransaction(const std::string& editorWalletId,
+                            const std::string& editorUsername,
+                            const std::string& editorFullName,
+                            const std::string& targetWalletId,
+                            const std::string& targetUsername,
+                            const std::string& targetFullName,
+                            int64_t pointsChange,
+                            bool isSuccess,
+                            const std::string& reason,
+                            const std::string& errorMessage) {
+    const std::string logFilename = "../logs/editspoint.log";
+    std::filesystem::path logPath(logFilename);
+    if (!std::filesystem::exists(logPath.parent_path())) {
+        std::filesystem::create_directories(logPath.parent_path());
+    }
+
+    const int maxFileSize = 100 * 1024 * 1024; // 100MB
+    if (std::filesystem::exists(logFilename) && std::filesystem::file_size(logFilename) > maxFileSize) {
+        std::string backupFilename = "../logs/transaction_" + getCurrentTime().substr(0, 10) + ".log";
+        std::rename(logFilename.c_str(), backupFilename.c_str());
+    }
+
+    std::ofstream logFile(logFilename, std::ios::app);
+    if (logFile.is_open()) {
+        std::string txId = generateTxId(); // Tạo ID giao dịch
+        std::string timestamp = getCurrentTime(); // Lấy ngày giờ hiện tại
+        logFile << "[" << txId << " " << timestamp << "] Point Edit"
+                << " By WalletId = " << editorWalletId << " (" << editorUsername << ", " << editorFullName << ")"
+                << " For WalletId = " << targetWalletId << " (" << targetUsername << ", " << targetFullName << ")"
+                << " Points Change: " << pointsChange << " (Reason: " << reason << ")"
+                << " Status: " << (isSuccess ? "Success" : "Failed");
+        if (!errorMessage.empty()) {
+            logFile << " Error: " << errorMessage;
+        }
+        logFile << std::endl;
+        logFile.close();
+        std::cout << "Transaction logged with ID: " << txId << " at " << timestamp << std::endl;
+    } else {
+        std::cerr << "Error: Unable to open log file!" << std::endl;
+    }
+}
+
 //Hàm kiểm tra WalletId và FFullName
 bool walletIdExists = false;
 bool checkWalletIdAndFullName(const std::string& filename,

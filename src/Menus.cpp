@@ -581,11 +581,59 @@ bool UserEditMenu(Admin * currentAdmin) {
                     //int64_t newPoints = dbUserPoint + int64_t.updated_value;
                     arrow::Status status = updateUserInfo(filename, currentUser, updated_value);
                     if(!status.ok()){
+                        // Ghi log giao dịch chỉnh sửa điểm sau khi lưu thành công
+                        if (updated_value.find("Points") != updated_value.end()) {
+                            int64_t editpoints = stoll(updated_value["Points"]) - currentUser->point(); // Tính chênh lệch điểm
+                            string reason;
+                            cout << "Enter reason for point change: ";
+                            getline(cin, reason);
+                            reason = trim(reason);
+                            if (reason.empty()) {
+                                cout << "Reason cannot be empty. Setting to 'No reason provided'!" << endl;
+                                reason = "No reason provided";
+                            }
+                            logPointEditTransaction(
+                                currentAdmin->wallet(),          // Wallet ID của admin
+                                currentAdmin->accountName(),     // Username của admin
+                                currentAdmin->fullName(),        // Full name của admin
+                                currentUser->wallet(),           // Wallet ID của user
+                                currentUser->accountName(),      // Username của user
+                                currentUser->fullName(),         // Full name của user
+                                editpoints,                      // Số điểm thay đổi
+                                false,                            // thất bại
+                                reason                           // Lý do
+                            );
+                            cout << "Transaction logged successfully!" << endl;
+                        }
                         cout << "Error updating user info: " << status.ToString() << endl;
                     } else {
+                        // Ghi log giao dịch chỉnh sửa điểm sau khi lưu thành công
+                        if (updated_value.find("Points") != updated_value.end()) {
+                            int64_t editpoints = stoll(updated_value["Points"]) - currentUser->point(); // Tính chênh lệch điểm
+                            string reason;
+                            cout << "Enter reason for point change: ";
+                            getline(cin, reason);
+                            reason = trim(reason);
+                            if (reason.empty()) {
+                                cout << "Reason cannot be empty. Setting to 'No reason provided'!" << endl;
+                                reason = "No reason provided";
+                            }
+                            logPointEditTransaction(
+                                currentAdmin->wallet(),          // Wallet ID của admin
+                                currentAdmin->accountName(),     // Username của admin
+                                currentAdmin->fullName(),        // Full name của admin
+                                currentUser->wallet(),           // Wallet ID của user
+                                currentUser->accountName(),      // Username của user
+                                currentUser->fullName(),         // Full name của user
+                                editpoints,                      // Số điểm thay đổi
+                                true,                            // Giả định thành công
+                                reason                           // Lý do
+                            );
+                            cout << "Transaction logged successfully!" << endl;
+                        }
                         cout << "All changes saved successfully!" << endl;
+                        }
                     }
-            }
                 cout << "Press ENTER key to return to Menu..." << endl;
                 cin.get(); // Wait for user input before continuing 
                 delete currentUser;
@@ -944,6 +992,14 @@ void AdminLoginMenu(Client *& currentClient) {
                         break; // Thoát để quay lại menu cha
                     }
                     case 3: {
+                        string reason;
+                        cout << "Enter reason for point change: ";
+                        getline(cin, reason);
+                        reason = trim(reason);
+                        if (reason.empty()) {
+                            cout << "Reason cannot be empty. Setting to 'No reason provided'!" << endl;
+                            reason = "No reason provided";
+                        }
                         cout << "Enter edit points (or 'z' to return menu): ";
                         getline(cin, newValue);
                         newValue = trim(newValue);
@@ -961,8 +1017,24 @@ void AdminLoginMenu(Client *& currentClient) {
                             editPoints = 0;
                         }
                         if (editAdminPoints(filename, currentAdmin, editPoints).ok()) {
+                            logPointEditTransaction(currentAdmin->wallet(),
+                                                    currentAdmin->accountName(),
+                                                    currentAdmin->fullName(),
+                                                    currentAdmin->wallet(),
+                                                    currentAdmin->accountName(),
+                                                    currentAdmin->fullName(),
+                                                    editPoints,
+                                                    true, reason);
                             cout << "Points changed successfully!\n";
                         } else {
+                            logPointEditTransaction(currentAdmin->wallet(),
+                                                    currentAdmin->accountName(),
+                                                    currentAdmin->fullName(),
+                                                    currentAdmin->wallet(),
+                                                    currentAdmin->accountName(),
+                                                    currentAdmin->fullName(),
+                                                    editPoints,
+                                                    false, reason);
                             cout << "Failed to change points!\n";
                         }
                         cout << "Press ENTER to continue...\n";
@@ -1143,6 +1215,7 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
                 cout << "Invalid point. Setting to 0!" << endl;
                 editpoints = 0;
             }
+            
             int64_t currentPoints = currentUser->point();
             int64_t newpoints = currentPoints + editpoints;
             currentUser->setPoint(newpoints); // Update the points in the User object

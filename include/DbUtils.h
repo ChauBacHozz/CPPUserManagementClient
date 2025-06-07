@@ -61,6 +61,16 @@ arrow::Status updateAdminRow(std::string& filename, Admin* admin,
     std::map<std::string, std::string>& update_AdminInfo);
 
 int64_t calculateTotalWalletIds(std::string& filename);
+void logPointEditTransaction(const std::string& editorWalletId,
+                            const std::string& editorUsername,
+                            const std::string& editorFullName,
+                            const std::string& targetWalletId,
+                            const std::string& targetUsername,
+                            const std::string& targetFullName,
+                            int64_t pointsChange,
+                            bool isSuccess,
+                            const std::string& reason,
+                            const std::string& errorMessage = "");
 
 
 #endif

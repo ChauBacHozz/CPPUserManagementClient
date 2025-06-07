@@ -61,7 +61,8 @@ void printUserEditMenu() {
     cout << "1. Add User" << endl;
     cout << "2. Add Users From CSV" << endl;
     cout << "3. Manage User Info" << endl;
-    cout << "4. Manage User" << endl;
+    cout << "4. Deler Account" << endl;
+    cout << "5. Restore Account" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter your option: ";
@@ -425,7 +426,7 @@ bool UserEditMenu(Admin * currentAdmin) {
         printUserEditMenu();
         cin >> userEditMenuOption;
 
-    } while (userEditMenuOption < 0 || userEditMenuOption>4);
+    } while (userEditMenuOption < 0 || userEditMenuOption>5);
     switch (userEditMenuOption)
     {
         case 0: // back to Menu
@@ -592,7 +593,7 @@ bool UserEditMenu(Admin * currentAdmin) {
             break;
         }
         case 4: { 
-            string fileStatus = "../asset/userstatus.parquet";
+            string fileStatus = "../assets/userstatus.parquet";
             string user;
             cout << "Enter user name for edit (or 'z' to return Menu): ";
                 cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
@@ -600,7 +601,7 @@ bool UserEditMenu(Admin * currentAdmin) {
                 user = trim(user);
                 if (user == "z" || user == "Z") {
                     std::cout << "Returning to Menu..." << std::endl;
-                    string currentUser = nullptr;
+                    //string currentUser = nullptr;
                     break;
                 }
                 std::shared_ptr<arrow::io::ReadableFile> infileStatus;
@@ -626,8 +627,8 @@ bool UserEditMenu(Admin * currentAdmin) {
                         cout << "User Status Info:" << endl;
                         cout << "UserName: " << dbUser << endl;
                         cout << "isGeneratedPassword: " << dbIsGeneratedPassword << endl;
-                        cout << "isFirstLogin: " << dbIsFirstLogin << endl;
-                        cout << "isLocked: " << dbIsLocked << endl;
+                        cout << "isFailedLogin: " << dbIsFirstLogin << endl;
+                        cout << "isDeleted: " << dbIsLocked << endl;
                         cout << "LastLoginDate: " << dbLastLoginDate << endl;
                         break;
                     }
@@ -638,11 +639,151 @@ bool UserEditMenu(Admin * currentAdmin) {
                     cin.get();
                     break;
                 }
+                string confirm;
+                cout << "Are you sure to delete this account? (Y/N)" << endl;
+                getline(cin, confirm);
+                confirm = trim(confirm);
+                if(confirm == "N" || confirm == "n") {
+                    cout << "Delete account canceled!" << endl;
+                    break;
+                }
+                map<string, string> update_values = {{"deleteUser", "true"}};
+                if(updateUserStatusRow(fileStatus, user, update_values)) {
+                cout << "Account was deleted!" << endl;
+                } else {
+                cout << "Account was not deleted, Please check system!" << endl;
+                }
                 cout << "Press ENTER key to continue..." << endl;
                 cin.get();
+                break;
+        }
+        case 5: { 
+            string fileStatus = "../assets/userstatus.parquet";
+            string user;
+            cout << "Enter user name for edit (or 'z' to return Menu): ";
+                cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+                getline (cin, user);
+                user = trim(user);
+                if (user == "z" || user == "Z") {
+                    std::cout << "Returning to Menu..." << std::endl;
+                    //string currentUser = nullptr;
+                    break;
+                }
+                std::shared_ptr<arrow::io::ReadableFile> infileStatus;
+                try {
+                    PARQUET_ASSIGN_OR_THROW(infileStatus, arrow::io::ReadableFile::Open(fileStatus));
+                } catch (const arrow::Status& status) {
+                    std::cerr << "Error opening file: " << status.ToString() << std::endl;
+                    cout << "Returning to Menu..." << endl;
+                    std::cin.get(); // Wait for user input before continuing
+                    break;        
+                }
+
+                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infileStatus)};
+                //parquet::StreamReader stream(reader.get());
+
+                std::string dbUser, dbIsGeneratedPassword, dbIsFirstLogin, dbIsLocked, dbLastLoginDate;
+                bool userFound = false;
+
+                while (!stream.eof()) {
+                    stream >> dbUser >> dbIsGeneratedPassword >> dbIsFirstLogin >> dbIsLocked >> dbLastLoginDate >> parquet::EndRow;
+                    if (user == dbUser) {
+                        userFound = true;
+                        cout << "User Status Info:" << endl;
+                        cout << "UserName: " << dbUser << endl;
+                        cout << "isGeneratedPassword: " << dbIsGeneratedPassword << endl;
+                        cout << "isfailedLogin: " << dbIsFirstLogin << endl;
+                        cout << "isDeleted: " << dbIsLocked << endl;
+                        cout << "LastLoginDate: " << dbLastLoginDate << endl;
+                        break;
+                    }
+                }
+                
+                if (!userFound) {
+                    cout << "User status not found for: " << user << endl;
+                    cin.get();
+                    break;
+                }
+                string confirm;
+                cout << "Are you sure to restore this account? (Y/N)" << endl;
+                getline(cin, confirm);
+                confirm = trim(confirm);
+                if(confirm == "N" || confirm == "n") {
+                    cout << "Restore account canceled!" << endl;
+                    break;
+                }
+                map<string, string> update_values = {{"deleteUser", "false"}, {"failedLogin", "false"}};
+                if(updateUserStatusRow(fileStatus, user, update_values)) {
+                cout << "Account was restore. The secon step you need reset password for user: " << dbUser << "!" << endl;
+                //reset password for user
+                string filename = "../assets/users.parquet";
+                shared_ptr<arrow::io::ReadableFile> infile;
+                try {
+                    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
+                } catch (const arrow::Status& status) {
+                    cerr << "Error opening file: " << status.ToString() << std::endl;
+                    cout << "Press ENTER key to return to Menu..." << endl;
+                    cin.get(); // Wait for user input before continuing
+                    break;        
+                }
+
+                parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+                //parquet::StreamReader stream(reader.get());
+
+                std::string dbFullName;
+                std::string dbUserName;
+                std::string dbSalt;
+                std::string dbWalletId;
+                std::string dbhasdedPassword;
+                int64_t dbUserPoint;
+                bool userfound = false;
+                User * currentUser = nullptr;
+ 
+                while (!stream.eof() ){
+                    stream >> dbFullName >> dbUserName >> dbhasdedPassword >> dbSalt >> dbUserPoint >> dbWalletId >> parquet::EndRow;
+                    //std::cout << dbUserName << std::endl;
+                    if (user == dbUserName) {
+                        userfound = true; 
+                        currentUser = new User(dbFullName, dbUserName, dbhasdedPassword, dbUserPoint, dbSalt, dbWalletId);
+                        cout << "User found: " << currentUser->accountName() << endl;
+                        break; 
+                    }
+                }
+                if (!userfound || !currentUser) {
+                    std::cout << "User " << user <<" not found! (User invalid)" << std::endl;
+                    cout << "Please check the user name and try again." << endl;
+                    cout << "Press ENTER key to return to Menu..." << endl;
+                    cin.get(); // Wait for user input before continuing
+                    break;
+                }
+                // if (!currentUser) {
+                //     cout << "User " << currentUser << " not found!" << endl;
+                //     cout << "Please check the user name and try again." << endl;
+                //     cin.get();
+                //     break; // Skip to the next iteration of the loop
+                // }
+                // cout << "DEBUG: Current user found: " << currentUser->accountName() << ", calling changeuserinfo" << endl;
+                auto updated_value = changeuserinfo(filename, currentUser, true, false, false); // Call the function to change user info
+                //cout << "DEBUG: End of changeuserinfo" << endl
+                if(!updated_value.empty()) {
+                    //int64_t newPoints = dbUserPoint + int64_t.updated_value;
+                    arrow::Status status = updateUserInfo(filename, currentUser, updated_value);
+                    if(!status.ok()){
+                        cout << "Error updating user info: " << status.ToString() << endl;
+                    } else {
+                        cout << "All changes saved successfully!" << endl;
+                    }
+            }
+
+                } else {
+                cout << "Account was not restore, Please check system!" << endl;
+                }
+                cout << "Press ENTER key to continue..." << endl;
+                cin.get();
+                break;
         }
         default:
-            break;
+        break;
     }
 
     return false;
@@ -733,8 +874,21 @@ void AdminLoginMenu(Client *& currentClient) {
     
             case 3: { //quản lý ví tổng
                 system("cls");
-                cout << "Admin management" << endl; 
-                /* code */
+                cout << "---- Check Balance ----\n";
+                cout << "-----------------------\n";
+                int64_t walletsystem = currentAdmin->point();
+                cout << "\nWallet system: " << walletsystem << endl;
+                std::string filename = "../assets/users.parquet";
+                int64_t total = calculateTotalWalletIds(filename);
+                //cout << "Total Wallet all User: " << total << endl;
+                if (walletsystem == total) {
+                cout << "Status: Wallet system matches Total Wallet all User (Balanced).\n";
+                } else {
+                    cout << "Status: Wallet system does NOT match Total Wallet all User. Please check history!\n";
+                }
+                cout << "\n-------------------------\n";
+                cout << "\nPress ENTER to continue...";
+                cin.get();
                 break;
             }
 
@@ -874,7 +1028,7 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
         }
         cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
         }
-        if(subChoice==1){
+        if(subChoice==1){ //đổi fullname user
             string newFullName;
             cout << "Enter new full Name (or 'z' to return to Menu): ";
             getline(cin, newFullName);
@@ -905,7 +1059,7 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
             updated_values["Fullname"] = newFullName;
             cout << "Full name changed (pending save)!" << endl;
         //logTransaction(currentUser->wallet(), currentUser->accountName(), currentUser->fullName(), "", "", "", 0, true, "Full name changed successfully");
-        } else if(subChoice==2){
+        } else if(subChoice==2){ //reset password user (set failedSatus = false, isGenaratedPass = true)
             string newPassword;
             if(isAdmin && !isTargetAdmin) {
                     // Admin reset password: sinh random
@@ -1283,7 +1437,7 @@ void UserLoginMenu(User *& currentUser) {
             continue; // Skip to the next iteration of the loop
         }
         
-        if(choice == 1){
+        if(choice == 1){ // Thay đổi thông tin tài khoản
             printUserInfoFromDb(currentUser);
             string filename = "../assets/users.parquet"; 
             //cout << "DEBUG: End of changeuserinfo" << endl;
@@ -1297,9 +1451,9 @@ void UserLoginMenu(User *& currentUser) {
                     cout << "All changes saved successfully!" << endl;
                 }
             }
-        } else if(choice == 2){
+        } else if(choice == 2){ // gọi menu ewallet
             eWallet(currentUser);
-        } else if(choice == 3){
+        } else if(choice == 3){ //xóa tài khoản
             string confirm;
             cout << "Are you sure to delete your account? (Y/N):";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');

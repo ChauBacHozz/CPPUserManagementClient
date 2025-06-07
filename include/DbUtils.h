@@ -60,5 +60,7 @@ void logTransaction(const std::string& senderWalletId,
 arrow::Status updateAdminRow(std::string& filename, Admin* admin, 
     std::map<std::string, std::string>& update_AdminInfo);
 
+int64_t calculateTotalWalletIds(std::string& filename);
+
 
 #endif

@@ -852,6 +852,7 @@ void loginUser(std::shared_ptr<arrow::io::ReadableFile> infile, User *& currentU
     }
 }
 
+//Đăng nhập admin
 void loginAdmin(std::shared_ptr<arrow::io::ReadableFile> infile, Admin*& currentAdmin) {
     if (currentAdmin != nullptr) {
         std::cout << "You are already logged in as: " << currentAdmin << std::endl;
@@ -946,7 +947,54 @@ void loginAdmin(std::shared_ptr<arrow::io::ReadableFile> infile, Admin*& current
         }
     }
 
+//Hàm tính tổng các ví trong user.parquet
+int64_t calculateTotalWalletIds(std::string& filename) {
+    std::shared_ptr<arrow::Table> table;
+    arrow::Status status = getTableFromFile(filename, table);
+    if (!status.ok()) {
+        std::cerr << "Error reading file '" << filename << "': " << status.ToString() << std::endl;
+        return -1; // Trả về -1 nếu không đọc được file
+    }
 
+    // Lấy schema để kiểm tra
+    std::shared_ptr<arrow::Schema> schema = table->schema();
+    //std::cout << "Schema: " << schema->ToString() << std::endl; // Bật lại để kiểm tra
+
+    // Index của cột Points
+    int points_column_index = 4; 
+    if (points_column_index >= schema->num_fields()) {
+        std::cerr << "Column 'Points' index out of range!" << std::endl;
+        return -1;
+    }
+    //std::cout << "Points column index: " << points_column_index << std::endl; 
+
+    // Lấy cột Points
+    std::shared_ptr<arrow::ChunkedArray> points_chunked_array = table->column(points_column_index);
+    if (!points_chunked_array) {
+        std::cerr << "Failed to get 'Points' column." << std::endl;
+        return -1;
+    }
+
+    // Tính tổng qua các chunk
+    int64_t total = 0;
+    for (int64_t chunk_idx = 0; chunk_idx < points_chunked_array->num_chunks(); ++chunk_idx) {
+        std::shared_ptr<arrow::Array> points_array = points_chunked_array->chunk(chunk_idx);
+        if (points_array->type_id() == arrow::Type::INT64) {
+            std::shared_ptr<arrow::Int64Array> int64_array = std::dynamic_pointer_cast<arrow::Int64Array>(points_array);
+            for (int64_t i = 0; i < int64_array->length(); ++i) {
+                if (int64_array->IsValid(i)) {
+                    total += int64_array->Value(i);
+                }
+            }
+        } else {
+            std::cerr << "'Points' column is not INT64 type in chunk " << chunk_idx << std::endl;
+        }
+    }
+
+    std::cout << "Total Wallet all User: " << total << std::endl;
+    return total;
+}
+            
 //Hàm sinh mã OTP
 // std::string generateOTP(const std::string& WalletId = "default") {
 //     // Sử dụng WalletId để tạo mã OTP duy nhất

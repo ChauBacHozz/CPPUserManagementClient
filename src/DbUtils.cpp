@@ -858,7 +858,7 @@ void loginAdmin(std::shared_ptr<arrow::io::ReadableFile> infile, Admin*& current
         return;
     }
 
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+    //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
     std::string userAdmin;
     std::cout << "User Admin (or 'z' to return Menu): ";
     std::getline (std::cin, userAdmin);

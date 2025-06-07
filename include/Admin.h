@@ -50,6 +50,6 @@ arrow::Status changeAdminName(std::string& filename, Admin* admin,
 arrow::Status changeAdminPassword(std::string& filename, Admin* admin,
                                     std::string& newPassword);
 
-arrow::Status changeAdminPoints(std::string& filename, Admin* admin, int64_t newPoints);
+arrow::Status editAdminPoints(std::string& filename, Admin* admin, int64_t editPoints);
 
 #endif

@@ -33,24 +33,23 @@ arrow::Status AppendUserStatusParquetRow(
     const std::string& lastLoginDate
 );
 
-
 void printAdminHomeMenu() {
     cout << "--- ADMIN HOME MENU ---" << endl;
     cout << "---------------------------------" << endl;
     cout << "1. User Listing" << endl;
     cout << "2. Manage User" << endl;
     cout << "3. Wallet Management" << endl;
-    cout << "4. Admin Info Editing" << endl;
+    cout << "4. Editing Admin Info" << endl;
     cout << "0. Back" << endl;
     cout << "---------------------------------" << endl;
     cout << "Enter Your Option: ";
 }
 
 void printAdminEditingInfo() {
-        cout << "--- ADMIN EDITING INFO MENU ---\n";
+        cout << "--- EDITING ADMIN INFO MENU ---\n";
         cout << "1. Change Full Name\n";
         cout << "2. Change Password\n";
-        cout << "3. Change Points\n";
+        cout << "3. Edit Points\n";
         cout << "0. Back\n";
         cout << "-------------------------------\n";
         cout << "Enter your choice: ";
@@ -100,7 +99,7 @@ void printchangeUserInfoMenu(bool isAdmin, bool isTargetAdmin) {
         } else {
         cout << "2. Reset User Password\n";
         }
-        cout << "3. Add Point\n"; 
+        cout << "3. Edit Point\n"; 
     } else {
         cout << "2. Change Password\n";
     }
@@ -578,12 +577,13 @@ bool UserEditMenu(Admin * currentAdmin) {
                 auto updated_value = changeuserinfo(filename, currentUser, true, false, false); // Call the function to change user info
                 //cout << "DEBUG: End of changeuserinfo" << endl
                 if(!updated_value.empty()) {
-                arrow::Status status = updateUserInfo(filename, currentUser, updated_value);
-                if(!status.ok()){
-                    cout << "Error updating user info: " << status.ToString() << endl;
-                } else {
-                    cout << "All changes saved successfully!" << endl;
-                }
+                    //int64_t newPoints = dbUserPoint + int64_t.updated_value;
+                    arrow::Status status = updateUserInfo(filename, currentUser, updated_value);
+                    if(!status.ok()){
+                        cout << "Error updating user info: " << status.ToString() << endl;
+                    } else {
+                        cout << "All changes saved successfully!" << endl;
+                    }
             }
                 cout << "Press ENTER key to return to Menu..." << endl;
                 cin.get(); // Wait for user input before continuing 
@@ -751,9 +751,16 @@ void AdminLoginMenu(Client *& currentClient) {
                 string newValue;
                 int64_t newPoints;
                 switch (choice) {
-                    case 1:
-                        cout << "Enter new full name: ";
-                        getline(std::cin, newValue);
+                    case 1: {
+                        cout << "Enter new full name (or 'z' to return menu): ";
+                        getline(cin, newValue);
+                        newValue = trim(newValue);
+                        if (newValue == "z" || newValue == "Z") {
+                        std::cout << "Returning to Menu..." << std::endl;
+                        // currentAdmin = nullptr;
+                        // adminEditingMenuExit = true;
+                        break;
+                        }
                         if (changeAdminName(filename, currentAdmin, newValue).ok()) {
                             cout << "Name changed successfully!\n";
                         } else {
@@ -762,9 +769,17 @@ void AdminLoginMenu(Client *& currentClient) {
                         cout << "Press ENTER to continue...";
                         cin.get();
                         break; // Thoát để quay lại menu cha
-                    case 2:
-                        cout << "Enter new password: ";
+                    }
+                    case 2: {
+                        cout << "Enter new password (or 'z' to return menu): ";
                         getline(cin, newValue);
+                        newValue = trim(newValue);
+                        if (newValue == "z" || newValue == "Z") {
+                        std::cout << "Returning to Menu..." << std::endl;
+                        // currentAdmin = nullptr;
+                        // adminEditingMenuExit = true;
+                        break;
+                        }
                         if (changeAdminPassword(filename, currentAdmin, newValue).ok()) {
                             cout << "Password changed successfully!\n";
                         } else {
@@ -773,10 +788,25 @@ void AdminLoginMenu(Client *& currentClient) {
                         cout << "Press ENTER to continue...";
                         cin.get();
                         break; // Thoát để quay lại menu cha
-                    case 3:
-                        cout << "Enter new points: ";
-                        cin >> newPoints;
-                        if (changeAdminPoints(filename, currentAdmin, newPoints).ok()) {
+                    }
+                    case 3: {
+                        cout << "Enter edit points (or 'z' to return menu): ";
+                        getline(cin, newValue);
+                        newValue = trim(newValue);
+                        if (newValue == "z" || newValue == "Z") {
+                        std::cout << "Returning to Menu..." << std::endl;
+                        // currentAdmin = nullptr;
+                        // adminEditingMenuExit = true;
+                        break;
+                        }
+                        int64_t editPoints = 0;
+                        try {
+                            editPoints = stoll(newValue);
+                        } catch (...) {
+                            cout << "Invalid point. Setting to 0!" << endl;
+                            editPoints = 0;
+                        }
+                        if (editAdminPoints(filename, currentAdmin, editPoints).ok()) {
                             cout << "Points changed successfully!\n";
                         } else {
                             cout << "Failed to change points!\n";
@@ -784,10 +814,12 @@ void AdminLoginMenu(Client *& currentClient) {
                         cout << "Press ENTER to continue...\n";
                         cin.get();
                         break; // Thoát để quay lại menu cha
-                    case 0:
+                    }
+                    case 0: {
                         cout << "Returning to main menu...\n";
                         adminEditingMenuExit = true;
                         break;
+                    }
                     default:
                         cout << "Invalid choice!\n";
                         cout << "Press ENTER key to continue...\n";
@@ -950,14 +982,15 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
             //     cin.get();
             //     pointsInput = ""; // Exit if point is invalid
             // }
-            int64_t newpoints = 0;
+            int64_t editpoints = 0;
             try {
-                newpoints = stoll(pointsInput);
+                editpoints = stoll(pointsInput);
             } catch (...) {
                 cout << "Invalid point. Setting to 0!" << endl;
-                newpoints = 0;
+                editpoints = 0;
             }
-
+            int64_t currentPoints = currentUser->point();
+            int64_t newpoints = currentPoints + editpoints;
             currentUser->setPoint(newpoints); // Update the points in the User object
             updated_values["Points"] = to_string(newpoints);
             cout << "Point changed (pending save)!" << endl;

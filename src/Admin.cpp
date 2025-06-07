@@ -119,7 +119,9 @@ arrow::Status changeAdminPassword(std::string& filename, Admin* admin,
 }
 
 //Hàm đổi điểm Admin-Ví tổng
-arrow::Status changeAdminPoints(std::string& filename, Admin* admin, int64_t newPoints) {
+arrow::Status editAdminPoints(std::string& filename, Admin* admin, int64_t editPoints) {
+    int64_t currentPoints = admin->point();
+    int64_t newPoints = currentPoints + editPoints;
     std::map<std::string, std::string> updated_values = {{"Points", std::to_string(newPoints)}};
     arrow::Status status = updateAdminRow(filename, admin, updated_values);
     if (status.ok()) {

@@ -1,50 +1,86 @@
-# CppPtitProjectPrototype
+# Giới thiệu dự án CppPtitProjectPrototype
 
-CppPtitProjectPrototype is a C++ project designed as a prototype for a user management system. It supports both regular users and administrators, and includes functionality for account creation, password encryption, points management, and secure data storage using Apache Arrow and Parquet.
+CppPtitProjectPrototype là một dự án C++ được thiết kế để quản lý thông tin người dùng. Nó được sử dụng hỗ trợ cho cả người dùng bình thường và quản trị viên, bao gồm các chức năng như:
+- Tạo và quản lý thông tin tài khoản: có thông tin cá nhân, mã hóa thông tin bảo mật.
+- Quản lý điểm và giao dịch.
+- Lưu trữ thông tin dữ liệu bằng Apache Arrow và Parquet.
 
-##  Features
+##  Chức năng
 
--  **User Account Management**
-  - Create and manage user accounts with encrypted passwords.
-  - Each user has attributes like full name, username, password, salt, wallet, and point balance.
+-  ** Quản lý thông tin tài khoản
+  - Tạo và quản lý thông tin tài khoản, với mật khẩu được mã hóa riêng.
+  - Mỗi tài khoản có các thông tin như tên người dùng, tài khoản, mật khẩu, mã ví mã hóa và số dư điểm.
 
--  **Admin Controls**
-  - Admin accounts can view and update user data.
-  - Admins can change their own name and password securely.
-  - Admins can adjust points and manage wallet balances.
 
--  **Data Storage**
-  - User and admin data is stored in Parquet files using the Apache Arrow library.
-  - Efficient data updates through Arrow APIs.
+-  ** Quản trị viên
+  - Quản trị viên có thể xem và chỉnh sửa thông tin người dùng (các mục cho phép).
+  - Chỉ tài khoản quản trị viên có thể đổi thông tin của mình đảm bảo bảo mật.
+  - Quản trị viên có thể tác động và kiểm tra số dư trên ví hệ thống.
 
--  **Security**
-  - Passwords are hashed using SHA-256 with salt.
-  - Passwords and salts are securely updated and stored.
+-  ** Quản lý dữ liệu
+  - Thông tin tài khoản của người dùng và quản trị viên được lưu trong file Parquet, sử dụng thư viện Apache Arrow.
+  - Dữ liệu được cập nhật bằng API.
 
-##  Technologies Used
+- ** Bảo mật
+  - Mật khẩu được xử lý bằng thuật toán SHA-256 với một chuỗi riêng.
+  - Chuỗi riêng và mật khẩu được lưu trữ đảm bảo an toàn và bảo mật riêng.
+
+##  Các loại ứng dụng được sử dụng
 
 - **C++17**
 - **CMake** (build system)
-- **Apache Arrow** and **Parquet** (data serialization and storage)
+- **Apache Arrow** and **Parquet** (tuần tự hóa và lưu trữ dữ liệu)
 - **OpenSSL** (SHA-256 hashing)
 - **librdkafka** (Kafka client library)
 - **Standard Template Library (STL)**
 
-##  Project Structure
+##  Cấu trúc dự án
 
 ```
 CppPtitProjectPrototype/
+├── assets/
+│   ├── admin.parquet
+│   ├── user_info.csv
+│   ├── users.parquet
+│   ├── userstatus.parquet
+├── include/          # Header files
+│   ├── arrow/
+│   ├── ├──...
+│   ├── librdkafka/
+│   ├── ├──...
+│   ├── openssl/
+│   ├── ├──...
+│   ├── parquet/
+│   ├── ├──...
+│   ├── Admin.h
+│   ├── Client.h
+│   ├── DbUtils.h
+│   ├── Encrypt.h
+│   ├── JsonUtils.h
+│   ├── Menus.h
+│   ├── transaction_utils.h #OTP
+│   ├── User.h
+│   ├── UserStatus.h  
+├── lib/              # External libraries (.dll, .lib, .a files)
+├── log/
+│   ├── OTP.log
+│   ├── editspoint.log
+│   ├── transaction.log
+│   ├── transaction.log.txt
 ├── src/
 │   ├── main.cpp
-│   ├── Admin.cpp / Admin.h
-│   ├── User.cpp / User.h
-│   ├── Encrypt.h
-│   ├── DbUtils.h / DbUtils.cpp
-│   └── ...
-├── lib/              # External libraries (.dll, .lib, .a files)
-├── include/          # Header files
+│   ├── Admin.cpp
+│   ├── Client.cpp
+│   ├── DbUtils.cpp
+│   ├── Encrypt.cpp
+│   ├── JsonUtils.cpp
+│   ├── Menus.cpp
+│   ├── OTP.cpp
+│   ├── User.cpp
+│   ├── UserStatus.cpp  
 ├── CMakeLists.txt
 └── README.md
+└── run.bat
 ```
 
 ##  Build Instructions
@@ -52,13 +88,13 @@ CppPtitProjectPrototype/
 ### Prerequisites
 
 - **CMake** >= 3.10
-- **C++17-compatible** compiler (e.g., `g++`, `clang++`, or MSVC)
-- **Apache Arrow** and **Parquet** development libraries
-- **OpenSSL** (`libssl` and `libcrypto`)
-- **librdkafka** (Kafka client library, optional but included)
-- Required `.dll` files should be placed in the `lib/` directory or available in system PATH
+- **C++17-compatible** compiler (e.g., `g++`, `clang++`, hoặc MSVC)
+- **Apache Arrow** và **Parquet** thư viện phát triển
+- **OpenSSL** (`libssl` và `libcrypto`)
+- **librdkafka** (thư viện Kafka, tùy chọn đã được bao gồm)
+- Yêu cầu các file định dạng `.dll` cần được để đúng trong thư mục `lib/`
 
-### Building the Project
+### Tạo dự án
 
 ```bash
 git clone https://github.com/ChauBacHozz/CppPtitProjectPrototype.git
@@ -68,19 +104,19 @@ cmake ..
 make
 ```
 
-The compiled binary will be placed in the `build/` directory as `main`.
+Tập tin sau khi được biên dịch thì được lưu tại `build/` với file có tên `main`.
 
-###  CMake Linking Details
+###  Chi tiết liên kết thư viện bằng CMake
 
-This project statically links the following libraries:
+Dự án này liên kết tĩnh các thư viện sau:
 
-- `arrow`, `parquet` — for columnar data storage
-- `libssl`, `libcrypto` — for SHA-256 password encryption
-- `rdkafka`, `rdkafkacpp` — (optional) for Kafka-based extensions
+- `arrow`, `parquet` — dùng để lưu trữ dữ liệu dạng cột hiệu quả
+- `libssl`, `libcrypto` — để mã hóa mật khẩu bằng thuật toán SHA-256
+- `rdkafka`, `rdkafkacpp` — (tuỳ chọn) hỗ trợ mở rộng với Kafka
 
-The `CMakeLists.txt` also copies necessary `.dll` files automatically after build:
+File `CMakeLists.txt` có đoạn mã tự động sao chép các file `.dll` cần thiết vào thư mục chứa file thực thi sau khi build thành công:
 
-```cmake
+```
 add_custom_command(TARGET main POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "lib/libarrow.dll"
@@ -93,32 +129,35 @@ add_custom_command(TARGET main POST_BUILD
 )
 ```
 
->  On Windows, you may need to adjust paths in `CMakeLists.txt` to match your actual installation of Arrow, Parquet, OpenSSL, and Kafka.
+- Trên Windows, bạn có thể cần điều chỉnh đường dẫn trong `CMakeLists.txt` để khớp với vị trí cài đặt thực tế của các thư viện Arrow, Parquet, OpenSSL và Kafka trên máy của bạn.
 
-## ▶ Running the Program
+## Chạy chương trình
 
-After successful build, the executable will be located in the `build/` directory:
-
-```bash
+Sau khi build thành công, bạn có thể chạy file thực thi trong thư mục `build/` bằng lệnh:
+```
 ./main
 ```
+Nếu chạy bằng CMake thì sử dụng câu lệnh 
+```
+./run.bat
+```
 
-Follow the on-screen prompts to log in as an admin or user.
+Chương trình sẽ hiển thị hướng dẫn trên màn hình để bạn đăng nhập với vai trò user hoặc admin.
 
 ##  Example Use Cases
 
-- **Admin Login**: Enter admin credentials to gain access to management features.
-- **Change Admin Name/Password**: Use provided functions to securely update name or password.
-- **Points Management**: Admins can transfer or edit user points with wallet synchronization.
-- **Persistent Storage**: All changes are stored in Parquet files and reflected in subsequent sessions.
+- Đăng nhập Admin: Nhập tài khoản admin để truy cập các tính năng quản lý.
+- Đổi tên/mật khẩu Admin: Sử dụng các hàm có sẵn để cập nhật thông tin cá nhân một cách an toàn.
+- Quản lý điểm số: Admin có thể chuyển điểm hoặc thay đổi điểm số cho user, đồng thời cập nhật ví.
+- Lưu trữ dữ liệu lâu dài: Tất cả thay đổi đều được ghi lại trong file Parquet và vẫn tồn tại sau khi đóng chương trình.
 
-##  Future Improvements
+##  Hướng phát triển trong tương lai
 
-- OTP verification for secure login
-- CLI-based or GUI-based role interactions
-- Input validation and better error handling
-- Logging system and audit trails
+- Xác thực đăng nhập bằng OTP
+- Giao diện dòng lệnh (CLI) hoặc giao diện đồ họa (GUI) phân quyền rõ ràng
+- Kiểm tra đầu vào và xử lý lỗi tốt hơn
+- Ghi log hệ thống và lịch sử thao tác
 
 ##  License
 
-This project was developed for educational purposes at PTIT. Not intended for commercial use.
+Dự án này được phát triển phục vụ mục đích học tập tại PTIT. Không sử dụng cho mục đích thương mại.

@@ -629,7 +629,7 @@ bool UserEditMenu(Admin * currentAdmin) {
         case 4: { //delete account
             string fileStatus = "../assets/userstatus.parquet";
             string user;
-            cout << "Enter user name for edit (or 'z' to return Menu): ";
+            cout << "Enter user name for delete (or 'z' to return Menu): ";
                 cin.ignore(numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
                 getline (cin, user);
                 user = trim(user);
@@ -1613,7 +1613,7 @@ void eWallet(User *& currentUser) {
                 cout << "Transaction history viewing cancelled." << endl;
                 continue; // Cancel viewing transaction history
             }
-            cout << "Transaction history for user: " << currentUser->accountName() << endl;
+            cout << "Transaction all history for user: " << currentUser->accountName() << endl;
             cout << "---------------------------------" << endl;
             listTransactions(currentUser, "", "", "", "", false, "Transfer"); // Call the function to list transactions for the current user
             cout << "Returning to E-Wallet Menu..." << endl;
@@ -1632,7 +1632,7 @@ void eWallet(User *& currentUser) {
                 std::cout << "Returning to menu..." << std::endl;
                 break; // Exit the loop to go back to the menu
             }
-            cout << "Transaction History by Time:" << endl;
+            cout << "\nTransaction History by Time: from " << startDate << " to " << endDate << endl;
             cout << "--------------------" << endl;
             listTransactions(currentUser, "", "", startDate, endDate, false, "Transfer");
             cout << "Returning to E-Wallet Menu..." << endl;

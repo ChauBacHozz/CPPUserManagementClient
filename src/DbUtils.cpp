@@ -1498,6 +1498,18 @@ arrow::Status transferPoint(const std::string& filename, User *& currentUser) {
                                      errorMessage)) {
             std::cout << "Error: " << errorMessage << std::endl;
             continue;
+        } else {
+        //kiểm tra trạng thái tài khoản người nhận
+        UserStatus status(receiverUserName, "false", "false", "false", "N/A");
+        readUserStatusFromFile(receiverUserName, status);
+        UserStatusType userStatus = status.checkStatus(status);
+            if (userStatus == UserStatusType::DELETED) {
+                std::cout << "Receiver account has been deleted. Please contact Admin for support!" << std::endl;
+                std::cout << "Press ENTER key to return menu....";
+                std::cin.get();
+                //currentUser = nullptr;
+                continue;
+            }
         }
 
         //nhập số điểm muốn chuyển

@@ -8,8 +8,8 @@ CppPtitProjectPrototype là một dự án C++ được thiết kế để quả
 ## Phân công công việc
 | Họ tên | Công việc thực hiện |
 | --- | --- |
-| Nguyễn Đức Phong (trưởng nhóm) | Xây dựng mục tiêu kế hoạch chương trình, thiết kế cấu trúc chương trình, xây dựng cơ sở dữ liệu và thiết kế xây dựng server |
-| Phan Đức Thuận | \- Hỗ trợ trưởng nhóm thiết kế cấu trúc chương trình.<br><br>\- Hoàn thiện các chức năng của User: đăng nhập, tạo tài khoản, chỉnh sửa thông tin tài khoản, giao dịch chuyển điểm, log giao dịch, sao kê giao dịch, tích hợp otp vào các giao dịch của user, xóa tài khoản.<br><br>\- Hoàn thiện các chức năng của Admin: đăng nhập, tạo tài khoản, xóa tài khoản, khôi phục tài khoản, chỉnh sửa thông tin của user (đổi tên, resetpass, thay đổi điểm), quản lý ví hệ thống (checkbalance, history transaction and edit point), thay đổi thông tin admin (đổi Tên, đổi pass, thay đổi điểm). |
+| Nguyễn Đức Phong (trưởng nhóm) | Xây dựng mục tiêu kế hoạch chương trình, thiết kế cấu trúc chương trình chính, xây dựng cơ sở dữ liệu. Cài đặt xây dựng chương trình hướng server-client, cài đặt và cấu hình các chức năng liên quan tới kafka, chức năng đa luồng. |
+| Phan Đức Thuận | \- Hỗ trợ trưởng nhóm thiết kế cấu trúc chương trình.<br><br>\- Hoàn thiện các chức năng của User: đăng nhập, tạo tài khoản, chỉnh sửa thông tin tài khoản, giao dịch chuyển điểm, log giao dịch, sao kê giao dịch, tích hợp otp vào các giao dịch của user.<br><br>\- Hoàn thiện các chức năng của Admin: đăng nhập, tạo tài khoản, xóa tài khoản, khôi phục tài khoản, chỉnh sửa thông tin của user (đổi tên, resetpass, thay đổi điểm). |
 | Lê Quang Tuấn | Xây dựng các class cho nhóm quản trị (Admin). Thiết kế các chương trình nhập, xuất dữ liệu cho nhóm quản trị sử dụng parquet. Xây dựng các chức năng quản lý ví, quản lý thông tin admin, OTP. Chuẩn bị báo cáo bài tập lớn. |
 | Nguyễn Duy Hòa | Viết chức năng OTP (change users info, transfer point)<br><br>\- Tạo chức năng userStatus (lưu parquet, kiểm tra đổi mật khẩu cho login lần đầu, lock users khi quá 3 lần login failed, delete users, kiểm tra status)<br><br>\- Viết file README cho dự án |
 ##  Chức năng

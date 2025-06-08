@@ -45,6 +45,16 @@ void printAdminHomeMenu() {
     cout << "Enter Your Option: ";
 }
 
+void printhistoryForAdmin() {
+    cout << "--- HISTORY FOR ADMIN MENU ---" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "1. History Transaction" << endl;
+    cout << "2. History Edits Point" << endl;
+    cout << "0. Back" << endl;
+    cout << "---------------------------------" << endl;
+    cout << "Enter Your Option: ";
+}
+
 void printAdminEditingInfo() {
         cout << "--- EDITING ADMIN INFO MENU ---\n";
         cout << "1. Change Full Name\n";
@@ -581,30 +591,6 @@ bool UserEditMenu(Admin * currentAdmin) {
                     //int64_t newPoints = dbUserPoint + int64_t.updated_value;
                     arrow::Status status = updateUserInfo(filename, currentUser, updated_value);
                     if(!status.ok()){
-                        // Ghi log giao dịch chỉnh sửa điểm sau khi lưu thành công
-                        if (updated_value.find("Points") != updated_value.end()) {
-                            int64_t editpoints = stoll(updated_value["Points"]) - currentUser->point(); // Tính chênh lệch điểm
-                            string reason;
-                            cout << "Enter reason for point change: ";
-                            getline(cin, reason);
-                            reason = trim(reason);
-                            if (reason.empty()) {
-                                cout << "Reason cannot be empty. Setting to 'No reason provided'!" << endl;
-                                reason = "No reason provided";
-                            }
-                            logPointEditTransaction(
-                                currentAdmin->wallet(),          // Wallet ID của admin
-                                currentAdmin->accountName(),     // Username của admin
-                                currentAdmin->fullName(),        // Full name của admin
-                                currentUser->wallet(),           // Wallet ID của user
-                                currentUser->accountName(),      // Username của user
-                                currentUser->fullName(),         // Full name của user
-                                editpoints,                      // Số điểm thay đổi
-                                false,                            // thất bại
-                                reason                           // Lý do
-                            );
-                            cout << "Transaction logged successfully!" << endl;
-                        }
                         cout << "Error updating user info: " << status.ToString() << endl;
                     } else {
                         // Ghi log giao dịch chỉnh sửa điểm sau khi lưu thành công
@@ -640,7 +626,7 @@ bool UserEditMenu(Admin * currentAdmin) {
                 currentUser = nullptr;
             break;
         }
-        case 4: { 
+        case 4: { //delete account
             string fileStatus = "../assets/userstatus.parquet";
             string user;
             cout << "Enter user name for edit (or 'z' to return Menu): ";
@@ -705,7 +691,7 @@ bool UserEditMenu(Admin * currentAdmin) {
                 cin.get();
                 break;
         }
-        case 5: { 
+        case 5: { //restore account
             string fileStatus = "../assets/userstatus.parquet";
             string user;
             cout << "Enter user name for edit (or 'z' to return Menu): ";
@@ -921,6 +907,8 @@ void AdminLoginMenu(Client *& currentClient) {
             }
     
             case 3: { //quản lý ví tổng
+                while (true){
+                int subChoice;
                 system("cls");
                 cout << "---- Check Balance ----\n";
                 cout << "-----------------------\n";
@@ -935,9 +923,49 @@ void AdminLoginMenu(Client *& currentClient) {
                     cout << "Status: Wallet system does NOT match Total Wallet all User. Please check history!\n";
                 }
                 cout << "\n-------------------------\n";
+                printhistoryForAdmin();
+                cin >> subChoice;
+                cin.ignore(); // Ignore the newline character left in the input buffer
+                if(subChoice==1){
+                    string username, startDate, endDate;
+                    cout << "Enter username to filter (or 'All' for all users, or leave blank): ";
+                    getline(cin, username);
+                    username = trim(username);
+                    cout << "Enter start date (DD/MM/YYYY, or leave blank): ";
+                    getline(cin, startDate);
+                    startDate = trim(startDate);
+                    cout << "Enter end date (DD/MM/YYYY, or leave blank): ";
+                    getline(cin, endDate);
+                    endDate = trim(endDate);
+                    listTransactions(nullptr, username.empty() ? "All" : username, "", startDate, endDate, true, "Transfer");
+                    cout << "Press ENTER to continue...";
+                    cin.get();
+                    break;
+                }else if(subChoice==2) {
+                    string username, startDate, endDate;
+                    cout << "Enter username to filter (or 'All' for all users, or leave blank): ";
+                    getline(cin, username);
+                    username = trim(username);
+                    cout << "Enter start date (DD/MM/YYYY, or leave blank): ";
+                    getline(cin, startDate);
+                    startDate = trim(startDate);
+                    cout << "Enter end date (DD/MM/YYYY, or leave blank): ";
+                    getline(cin, endDate);
+                    endDate = trim(endDate);
+                    listPointEdits(nullptr, username.empty() ? "All" : username, "", startDate, endDate, true, "PointEdit");
+                    cout << "Press ENTER to continue...";
+                    cin.get();
+                    break;
+                } else if(subChoice == 0) {
+                    cout << "Returning menu ...." << endl;
+                    break;
+                }
+
                 cout << "\nPress ENTER to continue...";
                 cin.get();
                 break;
+            }
+            break;
             }
 
             case 4: { //Thay đổi thông tin user admin
@@ -1027,14 +1055,6 @@ void AdminLoginMenu(Client *& currentClient) {
                                                     true, reason);
                             cout << "Points changed successfully!\n";
                         } else {
-                            logPointEditTransaction(currentAdmin->wallet(),
-                                                    currentAdmin->accountName(),
-                                                    currentAdmin->fullName(),
-                                                    currentAdmin->wallet(),
-                                                    currentAdmin->accountName(),
-                                                    currentAdmin->fullName(),
-                                                    editPoints,
-                                                    false, reason);
                             cout << "Failed to change points!\n";
                         }
                         cout << "Press ENTER to continue...\n";
@@ -1218,7 +1238,7 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
             
             int64_t currentPoints = currentUser->point();
             int64_t newpoints = currentPoints + editpoints;
-            currentUser->setPoint(newpoints); // Update the points in the User object
+            //currentUser->setPoint(newpoints); // Update the points in the User object
             updated_values["Points"] = to_string(newpoints);
             cout << "Point changed (pending save)!" << endl;
             cout << "Press ENTER key to return Menu.....";
@@ -1311,120 +1331,248 @@ bool isWithinTimeRange(const std::string& dateTime,
 }
 
 //truy vấn giao dịch từ logstransaction
-void listTransactions(User* currentUser = nullptr,
-                      const std::string& username = "",
-                      const std::string& IDWallet = "",
-                      const std::string& startDate = "",
-                      const std::string& endDate = "",
-                      bool isAdmin = false) {
-    const std::string logFileName = "../logs/transaction.log";
-    if (!std::filesystem::exists(logFileName)) {
-        std::cout << "No transaction history found." << std::endl;
+void listTransactions(User* currentUser,
+                     const string& username,
+                     const string& IDWallet,
+                     const string& startDate,
+                     const string& endDate,
+                     bool isAdmin,
+                     const string& transactionType) {
+    const string logFileName = "../logs/transaction.log";
+    if (!filesystem::exists(logFileName)) {
+        cout << "No transaction history found." << std::endl;
         return;
     }
-    std::ifstream logFile(logFileName);
+    ifstream logFile(logFileName);
     if (!logFile.is_open()) {
-        std::cerr << "Error opening transaction log file." << std::endl;
+        cerr << "Error opening transaction log file." << std::endl;
         return;
     }
 
-    //Regex to match transaction lines
-    std::regex logPattern(R"(\[([^\s]+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+Transfer\s+From\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+To\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+Points transferred:\s*(\d+)\s+Status:\s*(\w+)(?:\s+Error=([^\n]*))?)");
-
-    // kiểm tra tham số
-    bool allTransactions = isAdmin && username == "All" && IDWallet.empty(); // Hiển thị tất cả giao dịch nếu là admin và không lọc theo username hoặc IDWallet
-    bool filterbyUsername = isAdmin && !username.empty() && username != "All"; // Lọc theo username nếu là admin và username không rỗng hoặc không phải "All"
-    bool filterbyIDWallet = isAdmin && !IDWallet.empty() || (currentUser && IDWallet == currentUser->wallet()); // Lọc theo IDWallet nếu là admin và IDWallet không rỗng, hoặc nếu là người dùng hiện tại và IDWallet trùng với IDWallet của người dùng
-    bool filterbyuser = !isAdmin && currentUser != nullptr; // Lọc theo người dùng nếu không phải là admin và currentUser không rỗng
-
-    if (!allTransactions && !filterbyUsername && !filterbyIDWallet && ! filterbyuser) {
-        cout <<"Invalid parameters: Provide currentUser or IDWallet for user mode, or username and IDWallet for admin mode." << std::endl;
-        logFile.close();
-        return;
-    }
+    // Regex cho hai loại giao dịch
+    regex transferPattern(R"(\[([^\s]+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+Transfer\s+From\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+To\s+WalletId\s*=\s*([^\s]+)\s+\(([^,]+),\s*([^)]+)\)\s+Points transferred:\s*(\d+)\s+Status:\s*(\w+)(?:\s+Error=([^\n]*))?)");
+    //regex pointEditPattern(R"(\[([^\s]+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s*Point\s*Edit\s*By\s*WalletId\s*=\s*([^\s]+)\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*For\s*WalletId\s*=\s*([^\s]+)\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*Points\s*Change\s*[:\s]*(-?\d+)\s*\(\s*Reason\s*:\s*(.*?)\s*\)\s*Status\s*:\s*(\w+)(?:\s*Error\s*=\s*(.*?)\s*)?)");    
     
-    if(!startDate.empty() && convertDateTime(startDate, false).empty()) {
-        std::cerr << "Invalid start date format. Please use DD/MM/YYYY!" << std::endl;
+    bool allTransactions = isAdmin && username == "All" && IDWallet.empty();
+    bool filterbyUsername = isAdmin && !username.empty() && username != "All";
+    bool filterbyIDWallet = isAdmin && !IDWallet.empty() || (currentUser && IDWallet == currentUser->wallet());
+    bool filterbyuser = !isAdmin && currentUser != nullptr;
+
+    if (!allTransactions && !filterbyUsername && !filterbyIDWallet && !filterbyuser) {
+        cout << "Invalid parameters: Provide currentUser or IDWallet for user mode, or username and IDWallet for admin mode." << std::endl;
         logFile.close();
         return;
     }
 
-    if(!endDate.empty() && convertDateTime(endDate, true).empty()) {
-        std::cerr << "Invalid end date format. Please use DD/MM/YYYY!" << std::endl;
+    if (!startDate.empty() && convertDateTime(startDate, false).empty()) {
+        cerr << "Invalid start date format. Please use DD/MM/YYYY!" << std::endl;
         logFile.close();
         return;
     }
 
-    std::string line;
+    if (!endDate.empty() && convertDateTime(endDate, true).empty()) {
+        cerr << "Invalid end date format. Please use DD/MM/YYYY!" << std::endl;
+        logFile.close();
+        return;
+    }
+
+    string line;
     bool found = false;
-    std::cout << std::left;
-    std::cout /*<< std::setw(12) << "Transaction ID" */
-              << std::setw(20) << "DateTime" 
-              << std::setw(67) << "Sender Wallet ID" 
-              << std::setw(20) << "Sender Full Name" 
-              << std::setw(67) << "Receiver Wallet ID" 
-              << std::setw(20) << "Receiver Full Name" 
-              << std::setw(10) << "Points" 
-              << std::setw(10) << "Status"
-              << std::setw(50) << "Error Message" 
-              << std::endl;
-    std::cout << std::string(240, '-') << std::endl;
-    
-    while (std::getline(logFile, line)) {
-        std::smatch match;
-        if (regex_match(line, match, logPattern)) {
-            std::string transactionId = match[1].str();
-            std::string dateTime = match[2].str();
-            std::string senderWalletId = match[3].str();
-            std::string senderUserName = match[4].str();
-            std::string senderFullName = match[5].str();
-            std::string receiverWalletId = match[6].str();
-            std::string receiverUserName = match[7].str();
-            std::string receiverFullName = match[8].str();
-            int64_t pointsTransferred = std::stoll(match[9].str());
-            std::string status = match[10].str();
-            std::string errorMessage = match.size() > 9 ? match[11].str() : "";
+    cout << "\n---- TRANSACTION HISTORY ----\n" << left << endl;
+    cout /*<< std::setw(20) << "Transaction ID"*/
+              << setw(20) << "DateTime"
+              << setw(65) << "Sender Wallet ID"
+              << setw(27) << "Sender Name"
+              << setw(65) << "Receiver Wallet ID"
+              << setw(27) << "Receiver Name"
+              << setw(15) << "Points"
+              << setw(10) << "Status"
+              << setw(30) << "Error Message"
+              << endl;
+    cout << string(260, '-') << endl << flush;
 
-            // Kiểm tra điều kiện lọc
-            if(!isWithinTimeRange(dateTime, startDate, endDate)) {
-                continue; // Skip this transaction if it is not within the specified time range
+    while (getline(logFile, line)) {
+        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+        smatch match;
+        //bool isPointEdit = regex_match(line, match, pointEditPattern);
+        bool isTransfer = regex_match(line, match, transferPattern);
+
+        // if ((transactionType == "All" || (transactionType == "Transfer" && isTransfer) || (transactionType == "PointEdit" && isPointEdit)) && (isPointEdit || isTransfer)) {
+        //     // std::cout << "DEBUG: Processing line: " << line << std::endl;
+        //     // std::cout << "DEBUG: Match size: " << match.size() << std::endl;
+        //     for (size_t i = 0; i < match.size(); ++i) {
+        //         //std::cout << "DEBUG: match[" << i << "]: '" << match[i].str() << "'" << std::endl;
+        //     }
+
+            string dateTime = match[2].str();
+            string senderWalletId = match[3].str();
+            string senderFullName = match[5].str();
+            string receiverWalletId = match[6].str();
+            string receiverFullName = match[8].str();
+            string pointsStr = match[9].str();
+            string status = match[10].str();
+            string errorMessage = match.size() > 12 ? match[12].str() : "";
+
+            if (!isWithinTimeRange(dateTime, startDate, endDate)) {
+                continue;
             }
+
+            int64_t points = 0;
+            try {
+                points = stoll(pointsStr); // Thử chuyển đổi sang số
+                //std::cout << "DEBUG: Successfully parsed points: " << pointsStr << " -> " << points << std::endl;
+            } catch (const invalid_argument& e) {
+                //std::cerr << "Invalid points value in log line: '" << line << "' - Error: " << e.what() << std::endl;
+                continue; // Bỏ qua dòng log lỗi
+            } catch (const out_of_range& e) {
+                //std::cerr << "Points value out of range in log line: '" << line << "' - Error: " << e.what() << std::endl;
+                continue; // Bỏ qua dòng log lỗi
+            }
+
             bool matchCondition = false;
-            if (allTransactions) { 
-                matchCondition = true; // If all transactions are requested, match all conditions
+            if (allTransactions) {
+                matchCondition = true;
             } else if (filterbyuser && currentUser) {
                 matchCondition = (senderWalletId == currentUser->wallet() || receiverWalletId == currentUser->wallet());
             } else if (filterbyUsername) {
-                // std::string senderUserName = match[4].str().substr(0, match[4].str().find(","));
-                // std::string receiverUserName = match[6].str().substr(0, match[6].str().find(","));
-                matchCondition = (senderUserName == username || receiverUserName == username);
-            }
-            else if (filterbyIDWallet) {
+                matchCondition = (senderFullName == username || receiverFullName == username); // Sử dụng Fullname
+            } else if (filterbyIDWallet) {
                 matchCondition = (senderWalletId == IDWallet || receiverWalletId == IDWallet);
+            } else if (allTransactions && username.empty()) {
+                matchCondition = true; // Hiển thị tất cả nếu username rỗng và isAdmin
             }
 
-            if(matchCondition) {
+            if (matchCondition) {
                 found = true;
-                std::string shorttransactionId = transactionId.length() > 10 ? transactionId.substr(0, 10) + "..." : transactionId; // Truncate transaction ID to 12 characters
-                std::cout /*<< std::setw(20) << transactionId */
-                          << std::setw(20) << dateTime 
-                          << std::setw(67) << senderWalletId 
-                          << std::setw(20) << senderFullName 
-                          << std::setw(67) << receiverWalletId 
-                          << std::setw(20) << receiverFullName 
-                          << std::setw(10) << pointsTransferred 
-                          << std::setw(10) << status
-                          << std::setw(50) << errorMessage << std::endl;
-
+                cout << setw(20) << dateTime
+                    << setw(65) << senderWalletId
+                    << setw(27) << senderFullName
+                    << setw(65) << receiverWalletId
+                    << setw(27) << receiverFullName
+                    << setw(15) << points
+                    << setw(10) << status
+                    << setw(30) << (errorMessage.empty() ? "-" : errorMessage)
+                    << endl;
             }
-        }
     }
     logFile.close();
     if (!found) {
-        std::cout << "No transactions found matching the criteria." << std::endl;
+        cout << "No transactions found matching the criteria." << std::endl;
     } else {
-        std::cout << "End of transaction history." << std::endl;
+        cout << "End of transaction history." << std::endl;
     }
+}
+
+void listPointEdits(User* currentUser,
+                    const string& username,
+                    const string& IDWallet,
+                    const string& startDate,
+                    const string& endDate,
+                    bool isAdmin,
+                    const string& transactionType) {
+    const string logFileName = "../logs/transaction.log";
+    if (!filesystem::exists(logFileName)) {
+        cout << "No transaction history found." << endl;
+        return;
+    }
+    ifstream logFile(logFileName);
+    if (!logFile.is_open()) {
+        cerr << "Error opening transaction log file." << endl;
+        return;
+    }
+
+    regex pointEditPattern(R"(\[([^\s]+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s*Point\s*Edit\s*By\s*WalletId\s*=\s*([^\s]+)\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*For\s*WalletId\s*=\s*([^\s]+)\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*Points\s*Change\s*[:\s]*(-?\d+)\s*\(\s*Reason\s*:\s*(.*?)\s*\)\s*Status\s*:\s*(\w+)(?:\s*Error\s*=\s*(.*?)\s*)?)");
+    string line;
+    bool found = false;
+    cout << "\n---- EDITS POINT HISTORY ----\n" << left << endl;
+    cout /*<< setw(20) << "Transaction ID"*/
+         << setw(20) << "DateTime"
+         << setw(18) << "Editor Wallet ID"
+         << setw(13) << "Editor Name"
+         << setw(65) << "Target Wallet ID"
+         << setw(27) << "Target Name"
+         << setw(15) << "Points"
+         << setw(45) << "Reason"
+         << setw(10) << "Status"
+         << setw(30) << "Error Message" << endl;
+    cout << string(260, '-') << endl << flush;
+
+    // Điều kiện lọc
+    bool allTransactions = isAdmin && username == "All" && IDWallet.empty();
+    bool filterbyUsername = isAdmin && !username.empty() && username != "All";
+    bool filterbyIDWallet = isAdmin && !IDWallet.empty() || (!isAdmin && currentUser && IDWallet == currentUser->wallet());
+    bool filterbyuser = !isAdmin && currentUser != nullptr;
+
+    if (!allTransactions && !filterbyUsername && !filterbyIDWallet && !filterbyuser) {
+        cout << "Invalid parameters: Provide currentUser or IDWallet for user mode, or username and IDWallet for admin mode." << endl;
+        logFile.close();
+        return;
+    }
+
+    while (getline(logFile, line)) {
+        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+        smatch match;
+        if (regex_match(line, match, pointEditPattern)) {
+            // cout << "DEBUG: Processing line: " << line << endl;
+            // cout << "DEBUG: Match size: " << match.size() << endl;
+            for (size_t i = 0; i < match.size(); ++i) {
+                //cout << "DEBUG: match[" << i << "]: '" << match[i].str() << "'" << endl;
+            }
+
+            string dateTime = match[2].str();
+            string editorWalletId = match[3].str();
+            string editorFullName = match[5].str();
+            string targetWalletId = match[6].str();
+            string targetFullName = match[8].str();
+            string pointsStr = match[9].str();
+            string reason = match[10].str();
+            string status = match[11].str();
+            string errorMessage = match.size() > 12 ? match[12].str() : "";
+
+            if (!isWithinTimeRange(dateTime, startDate, endDate)) continue;
+
+            int64_t points = 0;
+            if (!pointsStr.empty()) {
+                try {
+                    points = stoll(pointsStr);
+                    //cout << "DEBUG: Successfully parsed points: " << pointsStr << " -> " << points << endl;
+                } catch (const exception& e) {
+                    cerr << "Invalid points value in log line: '" << line << "' - Error: " << e.what() << endl;
+                    continue;
+                }
+            }
+
+            bool matchCondition = false;
+            if (allTransactions) {
+                matchCondition = true;
+            } else if (filterbyuser && currentUser) {
+                matchCondition = (editorWalletId == currentUser->wallet() || targetWalletId == currentUser->wallet());
+            } else if (filterbyUsername) {
+                matchCondition = (editorFullName == username || targetFullName == username);
+            } else if (filterbyIDWallet) {
+                matchCondition = (editorWalletId == IDWallet || targetWalletId == IDWallet);
+            }
+
+            if (matchCondition) {
+                found = true;
+                cout /*<< setw(20) << match[1].str() // Transaction ID*/
+                     << setw(20) << dateTime
+                     << setw(18) << editorWalletId
+                     << setw(13) << editorFullName
+                     << setw(65) << targetWalletId
+                     << setw(27) << targetFullName
+                     << setw(15) << points
+                     << setw(45) << reason
+                     << setw(10) << status
+                     << setw(30) << (errorMessage.empty() ? "-" : errorMessage)
+                     << endl;
+            }
+        }
+    }
+
+    logFile.close();
+    if (!found) cout << "No transactions found matching the criteria." << endl;
+    else cout << "End of transaction history." << endl;
 }
 
 void eWallet(User *& currentUser) {
@@ -1467,9 +1615,11 @@ void eWallet(User *& currentUser) {
             }
             cout << "Transaction history for user: " << currentUser->accountName() << endl;
             cout << "---------------------------------" << endl;
-            listTransactions(currentUser, "", "", "", "", false); // Call the function to list transactions for the current user
+            listTransactions(currentUser, "", "", "", "", false, "Transfer"); // Call the function to list transactions for the current user
+            cout << "Returning to E-Wallet Menu..." << endl;
+            continue; // Return to the eWallet menu
         } else if(subChoice==3){
-             string startDate, endDate;
+            string startDate, endDate;
             cout << "Input startdate (DD/MM/YYYY) (or 'z' to return menu):" << endl;
             getline(cin, startDate);
             if (startDate == "z" || startDate == "Z") {
@@ -1484,7 +1634,9 @@ void eWallet(User *& currentUser) {
             }
             cout << "Transaction History by Time:" << endl;
             cout << "--------------------" << endl;
-            listTransactions(currentUser, "", "", startDate, endDate, false);
+            listTransactions(currentUser, "", "", startDate, endDate, false, "Transfer");
+            cout << "Returning to E-Wallet Menu..." << endl;
+            continue; // Return to the eWallet menu
         } else if(subChoice==0){
             cout << "Back to main menu" << endl;
             break; // Exit the loop to go back to the main menu

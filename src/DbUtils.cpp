@@ -1323,7 +1323,7 @@ void logPointEditTransaction(const std::string& editorWalletId,
                             bool isSuccess,
                             const std::string& reason,
                             const std::string& errorMessage) {
-    const std::string logFilename = "../logs/editspoint.log";
+    const std::string logFilename = "../logs/transaction.log";
     std::filesystem::path logPath(logFilename);
     if (!std::filesystem::exists(logPath.parent_path())) {
         std::filesystem::create_directories(logPath.parent_path());

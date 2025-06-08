@@ -1,6 +1,6 @@
-# Giới thiệu dự án CppPtitProjectPrototype
+# Giới thiệu dự án CPPUserManagementClient
 
-CppPtitProjectPrototype là một dự án C++ được thiết kế để quản lý thông tin người dùng. Nó được sử dụng hỗ trợ cho cả người dùng bình thường và quản trị viên, bao gồm các chức năng như:
+CPPUserManagementClient là một dự án C++ được thiết kế để quản lý thông tin người dùng. Nó được sử dụng hỗ trợ cho cả người dùng bình thường và quản trị viên, bao gồm các chức năng như:
 - Tạo và quản lý thông tin tài khoản: có thông tin cá nhân, mã hóa thông tin bảo mật.
 - Quản lý điểm và giao dịch.
 - Lưu trữ thông tin dữ liệu bằng Apache Arrow và Parquet.
@@ -150,6 +150,10 @@ add_custom_command(TARGET main POST_BUILD
 - Giao diện dòng lệnh (CLI) hoặc giao diện đồ họa (GUI) phân quyền rõ ràng
 - Kiểm tra đầu vào và xử lý lỗi tốt hơn
 - Ghi log hệ thống và lịch sử thao tác
+
+## Technical Report
+
+https://docs.google.com/document/d/1fW7TGIBWMCQcg8O_QnALevuO-oFXUdI_bMaQtgJx52w/edit?tab=t.0
 
 ##  License
 

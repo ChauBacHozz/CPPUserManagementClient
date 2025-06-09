@@ -225,7 +225,7 @@ bool isvalidPassword(std::string password) {
         return false;
     }
     else if (password.length() < 8) {
-        cout << "Password is too short. Minimum length is 8 characters." << endl;
+        cout << "Password is easy. Requires at least 8 characters include numbers, upper lower letters, special characters!" << endl;
         return false;
     } 
     bool hasUpper = false,
@@ -238,8 +238,14 @@ bool isvalidPassword(std::string password) {
         else if (isdigit(c)) hasDigit = true;
         else if (ispunct(c)) hasSpecial = true;
     }
-
-    return hasUpper && hasLower && hasDigit && hasSpecial;
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+        cout << "Password is easy. Requires at least 8 characters include numbers, upper lower letters, special characters!" << endl;
+        return false;
+    }
+    
+    // Nếu tất cả điều kiện được đáp ứng
+    return true;
+    
 }
 
 // User * enterUserInfo(){
@@ -318,8 +324,8 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
     }
 
     //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the newline character left in the input buffer
-    
     bool isGeneratedPassword = false; // Flag to indicate if the password is generated
+    while(true){
     if (isAdmin) {
         Password = generateSaltStr();
         hashedPassword = sha256(Password + genSalt);
@@ -330,6 +336,7 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
         cout << "Error hashing password." << endl;
         return nullptr;
         }
+        break;
     } else {
         cout << "User password (leave empty to generate random password, or 'z' to return to menu): ";
         getline(cin, Password);
@@ -338,6 +345,10 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
             cout << "User creation cancelled." << endl;
             cout << "Return to menu..." << endl;
             return nullptr; // Return to menu if user enters 'z'
+        }
+        if (isvalidPassword(Password)) {
+            //cout << "Please try again!" << endl;
+            continue;
         }
         if (Password.empty()) {
             // Generate a random password if the user leaves it empty or enters "z"
@@ -355,9 +366,11 @@ User * enterUserInfoRegister(bool isAdmin = false,  bool enterPoint = false){
                 cout << "Error hashing password." << endl;
                 cout << "Return to menu..." << endl;
                 return nullptr; // Exit if password hashing fails
-            }
+        }
+    break;
+    }
     
-        if (isAdmin || enterPoint) {
+    if (isAdmin || enterPoint) {
         cout << "Enter user point: ";
         cin >> userPoint;
         cin.ignore();
@@ -408,7 +421,7 @@ if(isGeneratedPassword != false) {
     // Append user status to the parquet file
     // Assuming the function appendUserStatusRow is defined elsewhere
     // and it appends a row to the user status parquet file
-    cout << "Appending user status to parquet file..." << endl;
+cout << "Appending user status to parquet file..." << endl;
     // Define the status file and default values
 std::string statusFile = "../assets/userstatus.parquet";
 std::string defaultStatus = "false";
@@ -1159,20 +1172,23 @@ map<std::string, std::string> changeuserinfo (std::string& filename,
                     cout << "Generated new password for user: " << newPassword << endl;
                     //cout << "Please inform the user to login and change this password!" << endl;
             } else {
-                cout << "Enter new password (or 'z' to return to Menu): ";
-                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                getline(cin, newPassword);
-                newPassword = trim(newPassword);
-                if (newPassword == "z" || newPassword == "Z") {
-                cout << "Returning to menu..." << endl;
-                return{}; // Exit the loop to go back to the home menu
+                while (true) {
+                    cout << "Enter new password (or 'z' to return to Menu): ";
+                    //cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    getline(cin, newPassword);
+                    newPassword = trim(newPassword);
+                    if (newPassword == "z" || newPassword == "Z") {
+                    cout << "Returning to menu..." << endl;
+                    return{}; // Exit the loop to go back to the home menu
+                    }
+                    // Validate the new password
+                    if(!isvalidPassword(newPassword)) {
+                    cout << "Invalid password. Please try again." << endl;
+                    continue;
+                    }
+                    break;
                 }
-                // Validate the new password
-            if(!isvalidPassword(newPassword)) {
-                cout << "Invalid password. Please try again." << endl;
-                return{}; // Skip to the next iteration of the loop
-                }
-            }  
+            }
             if(!newPassword.empty()){
                 string salt = generateSaltStr();
                 string hashedPassword = sha256(newPassword + salt);
@@ -1459,10 +1475,11 @@ void listTransactions(User* currentUser,
     if (!found) {
         cout << "No transactions found matching the criteria." << std::endl;
     } else {
-        cout << "End of transaction history." << std::endl;
+        cout << "\nEnd of transaction history." << std::endl;
     }
 }
 
+//hàm liệt kê các giao dịch sửa điểm của admin
 void listPointEdits(User* currentUser,
                     const string& username,
                     const string& IDWallet,
@@ -1572,7 +1589,7 @@ void listPointEdits(User* currentUser,
 
     logFile.close();
     if (!found) cout << "No transactions found matching the criteria." << endl;
-    else cout << "End of transaction history." << endl;
+    else cout << "\nEnd of transaction history." << endl;
 }
 
 void eWallet(User *& currentUser) {
@@ -1613,7 +1630,7 @@ void eWallet(User *& currentUser) {
                 cout << "Transaction history viewing cancelled." << endl;
                 continue; // Cancel viewing transaction history
             }
-            cout << "Transaction all history for user: " << currentUser->accountName() << endl;
+            cout << "\nTransaction all history for user: " << currentUser->accountName() << endl;
             cout << "---------------------------------" << endl;
             listTransactions(currentUser, "", "", "", "", false, "Transfer"); // Call the function to list transactions for the current user
             cout << "Returning to E-Wallet Menu..." << endl;
